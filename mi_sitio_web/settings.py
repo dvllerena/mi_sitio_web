@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-(tjod-aw1$b5=$5_a%!!dm84866bw&1%wsvgk9hr66u&y32+6@'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['mi-sitio-web-wbyq.onrender.com']
 CSRF_TRUSTED_ORIGINS = ['https://mi-sitio-web-wbyq.onrender.com']
