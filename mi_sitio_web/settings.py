@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import dj_database_url
 import os
 from pathlib import Path
 
@@ -25,7 +26,9 @@ SECRET_KEY = 'django-insecure-(tjod-aw1$b5=$5_a%!!dm84866bw&1%wsvgk9hr66u&y32+6@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['mi-sitio-web-wbyq.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://mi-sitio-web-wbyq.onrender.com']
+
 
 
 
@@ -80,15 +83,11 @@ WSGI_APPLICATION = 'mi_sitio_web.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgrade',
-        'USER': 'postgrade',
-        'PASSWORD': 'Denny1996.',
-        'HOST': 'db.lgellvvzbevdjsocagoc.supabase.co',
-        'PORT': '5432',
-        'OPTIONS': {'sslmode': 'require'}, 
-    }
+    'default': dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 
