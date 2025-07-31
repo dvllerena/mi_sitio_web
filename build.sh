@@ -11,6 +11,7 @@ pip install -r requirements.txt
 
 # 3. Aplicar migraciones
 echo "🔄 Aplicando migraciones..."
+python manage.py makemigrations
 python manage.py migrate
 
 # 4. Recolectar archivos estáticos
