@@ -1,0 +1,16 @@
+{% extends 'usuarios/base.html' %}
+{% block content %}
+<h2>Calcular Pérdidas</h2>
+<form method="post">
+    {% csrf_token %}
+    <label for="mes">Mes:</label>
+    <input type="number" name="mes" min="1" max="12" required>
+    <label for="año">Año:</label>
+    <input type="number" name="año" min="2020" max="2030" required>
+    <button type="submit" class="btn btn-primary">Calcular</button>
+</form>
+{% endblock %}
+
+
+
+

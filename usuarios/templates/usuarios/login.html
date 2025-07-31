@@ -1,0 +1,113 @@
+{% extends 'usuarios/base.html' %}
+{% load static %}
+{% block title %}Inicio de Sesión - UNE{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-5 col-md-7">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-une-primary text-white py-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h2 class="h5 mb-0"><i class="fas fa-sign-in-alt me-2"></i>Inicio de Sesión</h2>
+                    <img src="{% static 'usuarios/img/banner.png' %}" alt="Logo UNE" height="30">
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">
+                            <i class="fas fa-user me-1"></i>Nombre de usuario
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="username" class="form-control py-2" id="id_username" required>
+                        <div class="invalid-feedback">
+                            Por favor ingresa tu nombre de usuario
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>Contraseña
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" name="password" class="form-control py-2" id="id_password" required>
+                        <div class="invalid-feedback">
+                            Por favor ingresa tu contraseña
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                        <label class="form-check-label" for="remember_me">Recordar mi sesión</label>
+                    </div>
+                    
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-une btn-lg py-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>Ingresar
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-center">
+                        <a href="{% url 'password_reset' %}" class="text-decoration-none text-une-light">
+                            <i class="fas fa-key"></i> ¿Olvidaste tu contraseña?
+                        </a>
+                    </div>
+                </form>
+                
+                <div class="mt-4 pt-3 text-center border-top">
+                    <p class="mb-0">¿No tienes cuenta? 
+                        <a href="{% url 'registro' %}" class="text-decoration-none text-une-light">
+                            <i class="fas fa-user-plus"></i> Regístrate aquí
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control:focus {
+        border-color: var(--une-light-blue);
+        box-shadow: 0 0 0 0.25rem rgba(51, 153, 255, 0.25);
+    }
+    
+    .invalid-feedback {
+        color: #dc3545;
+    }
+    
+    .is-invalid {
+        border-color: #dc3545;
+    }
+</style>
+
+<script>
+    // Validación de formulario en cliente
+    (function() {
+        'use strict'
+        
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}

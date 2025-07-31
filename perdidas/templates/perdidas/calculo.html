@@ -1,0 +1,215 @@
+{% extends 'usuarios/base.html' %}
+
+{% block title %}Carga de Consumo Energético | UNE Matanzas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-une-light p-2 rounded">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Carga de Consumo</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0"><i class="fas fa-file-excel text-une-primary"></i> Carga de Consumo Energético</h2>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-une-secondary text-white">
+            <h5 class="mb-0">Seleccionar Periodo y Archivo</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="" class="mb-4">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_mes" class="form-label">Mes</label>
+                            <select class="form-select" id="id_mes" name="mes" required>
+                                {% for value, name in form.mes.field.choices %}
+                                    <option value="{{ value }}" {% if form.mes.value == value %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_año" class="form-label">Año</label>
+                            <select class="form-select" id="id_año" name="año" required>
+                                {% for value, name in form.año.field.choices %}
+                                    <option value="{{ value }}" {% if form.año.value == value %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-une w-100">
+                            <i class="fas fa-search me-2"></i> Buscar Datos
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_mes_post" class="form-label">Mes</label>
+                            <select class="form-select" id="id_mes_post" name="mes" required>
+                                {% for value, name in form.mes.field.choices %}
+                                    <option value="{{ value }}" {% if form.mes.value == value %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_año_post" class="form-label">Año</label>
+                            <select class="form-select" id="id_año_post" name="año" required>
+                                {% for value, name in form.año.field.choices %}
+                                    <option value="{{ value }}" {% if form.año.value == value %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_archivo_excel" class="form-label">Archivo Excel</label>
+                            <input type="file" class="form-control" id="id_archivo_excel" name="archivo_excel" required>
+                            <small class="text-muted">Debe contener columnas: municipio y consumo</small>
+                        </div>
+                        <button type="submit" class="btn btn-une w-100 mt-2">
+                            <i class="fas fa-upload me-2"></i> Cargar Nuevos Datos
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mostrar datos existentes en la DB -->
+    {% if mostrar_existentes %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-une-secondary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Datos Existentes - {{ consumos_existentes.0.fecha|date:"F Y"|default:"Periodo seleccionado" }}</h5>
+            {% if consumos_existentes %}
+            <a href="{% url 'perdidas:calculo' %}" class="btn btn-une-light btn-sm">
+                <i class="fas fa-times me-1"></i> Cerrar
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if consumos_existentes %}
+                {% regroup consumos_existentes by obet as datos_obet %}
+                {% for obet in datos_obet %}
+                <div class="mb-4">
+                    <h6 class="text-une-primary">{{ obet.grouper }}</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Municipio</th>
+                                    <th class="text-end">Consumo (MWh)</th>
+                                    <th class="text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for consumo in obet.list %}
+                                <tr>
+                                    <td>{{ consumo.get_municipio_display }}</td>
+                                    <td class="text-end">{{ consumo.consumo|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        <a href="{% url 'perdidas:editar_consumo' consumo.pk %}" class="btn btn-sm btn-outline-une">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    No hay datos guardados para el periodo seleccionado.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mostrar nuevos datos cargados desde Excel -->
+    {% if mostrar_resultados and datos_agrupados %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-une-secondary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Previsualización de Nuevos Datos - {{ fecha|date:"F Y" }}</h5>
+            <form method="post" action="{% url 'perdidas:guardar_consumo' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-une-light">
+                    <i class="fas fa-save me-2"></i> Guardar en BD
+                </button>
+            </form>
+        </div>
+        <div class="card-body">
+            {% for obet, datos in datos_agrupados.items %}
+            <div class="mb-4">
+                <h6 class="text-une-primary">{{ obet }}</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Municipio</th>
+                                <th class="text-end">Consumo (MWh)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dato in datos %}
+                            <tr>
+                                <td>{{ dato.municipio.get_nombre_display }}</td>
+                                <td class="text-end">{{ dato.consumo|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="text-end mt-3">
+                <h5>Total Provincial: <strong>{{ total_consumo|floatformat:2 }}</strong> MWh</h5>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

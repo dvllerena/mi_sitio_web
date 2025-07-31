@@ -1,0 +1,231 @@
+{% extends 'usuarios/base.html' %}
+{% load static %}
+
+{% block title %}Panel de Control - UNE Matanzas{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="row">
+        <!-- Sidebar Mejorado -->
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-une-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-th-large me-2"></i>Módulos</h5>
+                    <span class="badge bg-une-accent">{{ user.get_role_display }}</span>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'perdidas:calculo' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="fas fa-calculator text-une-primary me-3"></i>
+                        <span>Cálculo de Pérdidas</span>
+                    </a>
+
+                    <a href="{% url 'facturacion:facmayor' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="fas fa-file-invoice-dollar text-une-primary me-3"></i>
+                        <span>FacMayor</span>
+                    </a>
+
+                    <a href="{% url 'infoperdidas:informe' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="fas fa-chart-line text-une-primary me-3"></i>
+                        <span>InfPérdidas</span>
+                    </a>
+
+                    <a href="{% url 'perdidas:lventas' %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="fas fa-clipboard-list text-une-primary me-3"></i>
+                        <span>LVentas</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Tarjeta de Usuario -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <img src="{% if user.perfil.avatar %}{{ user.perfil.avatar.url }}{% else %}{% static 'img/default-avatar.png' %}{% endif %}" 
+                         class="rounded-circle mb-3" width="80" alt="Avatar">
+                    <h5 class="mb-1">{{ user.get_full_name|default:user.username }}</h5>
+                    <p class="text-muted small mb-2">{{ user.email }}</p>
+                    <div class="d-grid">
+                        <a href="{% url 'perfil' %}" class="btn btn-sm btn-outline-une">Ver perfil</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Mejorado -->
+        <div class="col-md-9">
+            <!-- Tarjeta de Bienvenida con Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb bg-une-light p-2 rounded">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+                </ol>
+            </nav>
+            
+            {% block dashboard_content %}
+            <!-- Alertas y Notificaciones -->
+            <div class="alert alert-une-light alert-dismissible fade show">
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <h4 class="alert-heading"><i class="fas fa-bell me-2"></i>Bienvenido al sistema</h4>
+                <p>Último acceso: {{ user.last_login|date:"d/m/Y H:i" }}</p>
+                <hr>
+                <p class="mb-0">Seleccione un módulo del menú lateral para comenzar.</p>
+            </div>
+            
+            <!-- Widgets de Resumen Mejorados -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-start border-une-primary border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-uppercase text-muted small fw-bold">Pérdidas este mes</h6>
+                                    <h2 class="text-une-orange mb-0">15.8%</h2>
+                                    <span class="text-danger small"><i class="fas fa-arrow-up"></i> 2.1% vs mes anterior</span>
+                                </div>
+                                <div class="bg-une-light p-3 rounded">
+                                    <i class="fas fa-bolt text-une-primary fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{% url 'infoperdidas:informe' %}" class="small">Ver detalles <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-start border-une-primary border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-uppercase text-muted small fw-bold">Facturación total</h6>
+                                    <h2 class="text-une-blue mb-0">$2,450,000</h2>
+                                    <span class="text-success small"><i class="fas fa-arrow-up"></i> 5.3% vs mes anterior</span>
+                                </div>
+                                <div class="bg-une-light p-3 rounded">
+                                    <i class="fas fa-dollar-sign text-une-primary fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{% url 'facturacion:facmayor' %}" class="small">Ver detalles <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico de Pérdidas (Placeholder) -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-une-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Evolución de Pérdidas</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-une-outline dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Últimos 6 meses
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Últimos 3 meses</a></li>
+                            <li><a class="dropdown-item" href="#">Últimos 6 meses</a></li>
+                            <li><a class="dropdown-item" href="#">Este año</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-placeholder" style="height: 300px;">
+                        <img src="{% static 'img/chart-placeholder.png' %}" alt="Gráfico de pérdidas" class="img-fluid">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Últimos Registros -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-une-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Actividad Reciente</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Módulo</th>
+                                    <th>Acción</th>
+                                    <th>Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>15/07/2025 14:30</td>
+                                    <td>Cálculo</td>
+                                    <td>Nuevo cálculo realizado</td>
+                                    <td>Admin</td>
+                                </tr>
+                                <tr>
+                                    <td>14/07/2025 10:15</td>
+                                    <td>FacMayor</td>
+                                    <td>Actualización de tarifas</td>
+                                    <td>Técnico1</td>
+                                </tr>
+                                <tr>
+                                    <td>12/07/2025 16:45</td>
+                                    <td>InfPérdidas</td>
+                                    <td>Generación de reporte</td>
+                                    <td>Admin</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Scripts para gráficos (ejemplo con Chart.js) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Ejemplo de gráfico - implementar con datos reales
+const ctx = document.createElement('canvas');
+document.querySelector('.chart-placeholder').replaceWith(ctx);
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+        datasets: [{
+            label: '% Pérdidas',
+            data: [18.2, 17.5, 16.8, 16.3, 15.9, 15.8],
+            borderColor: '#F37021',
+            backgroundColor: 'rgba(243, 112, 33, 0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.parsed.y + '%';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

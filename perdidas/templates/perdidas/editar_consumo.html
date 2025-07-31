@@ -1,0 +1,39 @@
+{% extends 'usuarios/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-une-secondary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-edit me-2"></i>
+                Editar Consumo - {{ object.municipio.get_nombre_display }} ({{ object.fecha|date:"F Y" }})
+            </h4>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {# Mostrar solo el campo de consumo, sin archivo_excel, mes ni año #}
+                {% for field in form %}
+                    {% if field.name == 'consumo' %}
+                        <div class="mb-3">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger small">{{ field.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                <div class="text-end mt-4">
+                    <a href="{% url 'perdidas:calculo' %}" class="btn btn-secondary me-2">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-une">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

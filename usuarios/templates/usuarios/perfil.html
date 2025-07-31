@@ -1,0 +1,126 @@
+{% extends 'usuarios/base.html' %}
+{% load static %}
+
+{% block title %}Mi Perfil - UNE{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-une-primary text-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="h4 mb-0"><i class="fas fa-user-circle me-2"></i>Perfil de {{ user.username }}</h2>
+                    <img src="{% static 'usuarios/img/banner.png' %}" alt="Logo UNE" height="30">
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <!-- Columna de la foto de perfil -->
+                    <div class="col-md-4 text-center mb-4 mb-md-0">
+                        <div class="position-relative mx-auto" style="width: 180px;">
+                            <img src="{% if request.user.perfil.avatar %}{{ request.user.perfil.avatar.url }}{% else %}{% static 'usuarios/img/default-avatar.png' %}{% endif %}" 
+                                class="img-thumbnail rounded-circle" 
+                                alt="Foto de perfil">
+                            <button class="btn btn-une btn-sm position-absolute bottom-0 end-0 rounded-circle" 
+                                    style="width: 36px; height: 36px;"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#avatarModal">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Columna de la información -->
+                    <div class="col-md-8">
+                        <div class="une-profile-details">
+                            <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
+                                <h3 class="h5 text-une-light">Información Personal</h3>
+                                <a href="{% url 'editar_perfil' %}" class="btn btn-une btn-sm">
+                                    <i class="fas fa-edit me-1"></i>Editar
+                                </a>
+                            </div>
+                            
+                            <dl class="row">
+                                <dt class="col-sm-4"><i class="fas fa-user me-2 text-une-light"></i>Usuario:</dt>
+                                <dd class="col-sm-8">{{ user.username }}</dd>
+
+                                <dt class="col-sm-4"><i class="fas fa-envelope me-2 text-une-light"></i>Email:</dt>
+                                <dd class="col-sm-8">{{ user.email }}</dd>
+
+                                <dt class="col-sm-4"><i class="fas fa-phone me-2 text-une-light"></i>Teléfono:</dt>
+                                <dd class="col-sm-8">{{ user.telefono|default:"No especificado" }}</dd>
+
+                                <dt class="col-sm-4"><i class="fas fa-calendar-alt me-2 text-une-light"></i>Registrado:</dt>
+                                <dd class="col-sm-8">{{ user.date_joined|date:"d/m/Y" }}</dd>
+                            </dl>
+                        </div>
+                        
+                        <div class="mt-4 pt-3 border-top">
+                            <h3 class="h5 text-une-light mb-3"><i class="fas fa-shield-alt me-2"></i>Seguridad</h3>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'password_change' %}" class="btn btn-outline-une">
+                                    <i class="fas fa-key me-1"></i>Cambiar contraseña
+                                </a>
+                                <a href="#" class="btn btn-outline-une">
+                                    <i class="fas fa-envelope me-1"></i>Verificar email
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar avatar -->
+<div class="modal fade" id="avatarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-une-primary text-white">
+                <h5 class="modal-title">Cambiar foto de perfil</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'cambiar_avatar' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="avatarInput" class="form-label">Selecciona una imagen</label>
+                        <input class="form-control" type="file" id="avatarInput" name="avatar" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-une">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-une-primary {
+        border-color: var(--une-dark-blue) !important;
+    }
+    
+    .btn-outline-une {
+        color: var(--une-dark-blue);
+        border-color: var(--une-dark-blue);
+    }
+    
+    .btn-outline-une:hover {
+        background-color: var(--une-dark-blue);
+        color: white;
+    }
+    
+    .une-profile-details dt {
+        font-weight: 500;
+        color: var(--une-dark-blue);
+    }
+    
+    .une-profile-details dd {
+        margin-bottom: 0.8rem;
+    }
+</style>
+{% endblock %}

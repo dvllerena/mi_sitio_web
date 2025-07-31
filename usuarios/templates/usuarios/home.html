@@ -1,0 +1,151 @@
+{% extends 'usuarios/base.html' %}
+{% load static %}
+
+{% block title %}Inicio - UNE{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <!-- Hero Section -->
+            <div class="une-hero p-5 rounded-4 shadow-sm mb-5" style="background-color: #E6F0FA;">
+                <img src="{% static 'usuarios/img/banner.png' %}" alt="Logo UNE" class="mb-4" style="max-height: 80px;">
+                <h1 class="display-4 fw-bold mb-3 text-une-dark">
+                    Bienvenido{% if user.is_authenticated %}, <span class="text-une-orange">{{ user.username }}</span>{% endif %}!
+                </h1>
+                <p class="lead fs-4 mb-4">
+                    {% if user.is_authenticated %}
+                        Sistema de Gestión de Usuarios de la UNE
+                    {% else %}
+                        Unión Eléctrica - Plataforma de gestión institucional
+                    {% endif %}
+                </p>
+                
+                {% if not user.is_authenticated %}
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    <a href="{% url 'login' %}" class="btn btn-une btn-lg px-4 gap-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                    </a>
+                    <a href="{% url 'registro' %}" class="btn btn-outline-une btn-lg px-4">
+                        <i class="fas fa-user-plus me-2"></i>Registrarse
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Features Section -->
+            {% if user.is_authenticated %}
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="une-icon-circle bg-une-primary-light mb-3 mx-auto">
+                                <i class="fas fa-user text-une-primary fs-3"></i>
+                            </div>
+                            <h3 class="h5">Mi Perfil</h3>
+                            <p class="text-muted">Administra tu información personal</p>
+                            <a href="{% url 'perfil' %}" class="btn btn-sm btn-une">Acceder</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="une-icon-circle bg-une-primary-light mb-3 mx-auto">
+                                <i class="fas fa-key text-une-primary fs-3"></i>
+                            </div>
+                            <h3 class="h5">Seguridad</h3>
+                            <p class="text-muted">Cambia tu contraseña</p>
+                            <a href="{% url 'password_change' %}" class="btn btn-sm btn-une">Actualizar</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="une-icon-circle bg-une-primary-light mb-3 mx-auto">
+                                <i class="fas fa-cog text-une-primary fs-3"></i>
+                            </div>
+                            <h3 class="h5">Configuración</h3>
+                            <p class="text-muted">Personaliza tu experiencia</p>
+                            <a href="#" class="btn btn-sm btn-une">Configurar</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h3 class="h5 text-une-primary"><i class="fas fa-info-circle me-2"></i>¿Qué es la UNE?</h3>
+                            <p class="text-muted">La Unión Eléctrica de Cuba es la empresa encargada del sistema electroenergético nacional.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h3 class="h5 text-une-primary"><i class="fas fa-question-circle me-2"></i>¿Necesitas ayuda?</h3>
+                            <p class="text-muted">Contacta con nuestro equipo de soporte técnico para cualquier duda.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Call to Action -->
+            <div class="bg-une-primary-light p-4 rounded-4">
+                <h2 class="h4 mb-3 text-une-primary">¿Listo para comenzar?</h2>
+                <p class="mb-4">Explora todas las funcionalidades de nuestra plataforma institucional.</p>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'perfil' %}" class="btn btn-une">Ir a mi perfil</a>
+                {% else %}
+                    <a href="{% url 'registro' %}" class="btn btn-une">Crear una cuenta</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .une-hero {
+        background: linear-gradient(135deg, #E6F0FA 0%, #FFFFFF 100%);
+        border: 1px solid rgba(0, 51, 102, 0.1);
+    }
+    
+    .text-une-dark {
+        color: var(--une-dark-blue);
+    }
+    
+    .text-une-orange {
+        color: var(--une-orange);
+    }
+    
+    .bg-une-primary-light {
+        background-color: rgba(0, 51, 102, 0.05);
+    }
+    
+    .une-icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-outline-une {
+        color: var(--une-dark-blue);
+        border-color: var(--une-dark-blue);
+    }
+    
+    .btn-outline-une:hover {
+        background-color: var(--une-dark-blue);
+        color: white;
+    }
+</style>
+{% endblock %}

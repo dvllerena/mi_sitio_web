@@ -1,0 +1,119 @@
+{% extends 'usuarios/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <!-- Selector de Mes/Año -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="get" class="row g-3 align-items-center">
+                <div class="col-md-5">
+                    <select name="mes" class="form-select">
+                        {% for num, nombre in meses %}
+                        <option value="{{ num }}" {% if num == mes_actual %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <select name="año" class="form-select">
+                        {% for a in años %}
+                        <option value="{{ a }}" {% if a == año_actual %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Pestañas de Municipios -->
+    <ul class="nav nav-tabs" id="municipiosTab" role="tablist">
+        {% for mun in municipios %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                    id="{{ mun.codigo }}-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#{{ mun.codigo }}" 
+                    type="button">
+                {{ mun.nombre }}
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Contenido de las Pestañas -->
+    <div class="tab-content p-3 border border-top-0 rounded-bottom bg-white">
+        {% for mun in municipios %}
+        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+             id="{{ mun.codigo }}" 
+             role="tabpanel">
+             
+            <!-- Tabla de Datos -->
+            <table class="table table-bordered">
+                <tbody>
+                    <!-- Energía en Barra -->
+                    <tr>
+                        <th colspan="2">TOTAL DE ENERGÍA EN BARRA</th>
+                        <td class="text-end">{{ mun.energia_barra|floatformat:2 }} MWh</td>
+                    </tr>
+                    
+                    <!-- Facturación -->
+                    <tr>
+                        <td width="20"></td>
+                        <th>Facturación Mayor</th>
+                        <td class="text-end">{{ mun.fact_mayor|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <th>Facturación Menor</th>
+                        <td class="text-end">{{ mun.fact_menor|floatformat:2 }}</td>
+                    </tr>
+                    
+                    <!-- Total Ventas -->
+                    <tr class="table-primary">
+                        <th colspan="2">TOTAL DE VENTAS</th>
+                        <td class="text-end">{{ mun.total_ventas|floatformat:2 }}</td>
+                    </tr>
+                    
+                    <!-- Pérdidas -->
+                    <tr>
+                        <th colspan="2">PÉRDIDAS EN DISTRIBUCIÓN</th>
+                        <td class="text-end">{{ mun.perdidas_mwh|floatformat:2 }} MWh</td>
+                    </tr>
+                    <tr>
+                        <th colspan="2">PÉRDIDAS (%)</th>
+                        <td class="text-end">{{ mun.perdidas_pct|floatformat:2 }}%</td>
+                    </tr>
+                    
+                    <!-- Acumulados -->
+                    <tr class="table-info">
+                        <th colspan="3" class="text-center">ACUMULADOS</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Energía Acumulada</th>
+                        <td class="text-end">{{ mun.acumulado_energia|floatformat:2 }} MWh</td>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Pérdidas Acumuladas (MWh)</th>
+                        <td class="text-end">{{ mun.acumulado_perdidas|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Pérdidas Acumuladas (%)</th>
+                        <td class="text-end">{{ mun.acumulado_pct|floatformat:2 }}%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% endblock %}

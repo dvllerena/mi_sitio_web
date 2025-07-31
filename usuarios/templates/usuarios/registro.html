@@ -1,0 +1,101 @@
+{% extends 'usuarios/base.html' %}
+{% load static %}
+{% block title %}Registro - UNE{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-6 col-md-8">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-une-primary text-white py-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h2 class="h5 mb-0"><i class="fas fa-user-plus me-2"></i>Registro de Usuario</h2>
+                    <img src="{% static 'usuarios/img/banner.png' %}" alt="Logo UNE" height="30">
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        
+                        {{ field }}
+                        
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-une btn-lg py-2">
+                            <i class="fas fa-user-plus me-2"></i>Registrarse
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-4 pt-3 text-center border-top">
+                    <p class="mb-0">¿Ya tienes cuenta? 
+                        <a href="{% url 'login' %}" class="text-decoration-none text-une-light">
+                            <i class="fas fa-sign-in-alt"></i> Inicia sesión aquí
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control:focus {
+        border-color: var(--une-light-blue);
+        box-shadow: 0 0 0 0.25rem rgba(51, 153, 255, 0.25);
+    }
+    
+    .invalid-feedback {
+        color: #dc3545;
+    }
+    
+    .is-invalid {
+        border-color: #dc3545;
+    }
+</style>
+
+<script>
+    // Validación de formulario en cliente
+    (function() {
+        'use strict'
+        
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}
