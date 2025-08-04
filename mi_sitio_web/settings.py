@@ -83,11 +83,17 @@ WSGI_APPLICATION = 'mi_sitio_web.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',  # Nombre de la base de datos en Supabase
+        'USER': 'postgres.gpsolwhzaypqmknahjpo',  # Tu usuario de Supabase
+        'PASSWORD': 'Denny1996.',  # Tu contraseña de Supabase
+        'HOST': 'aws-0-us-east-1.pooler.supabase.com',  # Host de Supabase
+        'PORT': '5432',  # Puerto de PostgreSQL
+        'OPTIONS': {
+            'sslmode': 'require',  # Requerir SSL para conexión segura
+        },
+    }
 }
 
 
