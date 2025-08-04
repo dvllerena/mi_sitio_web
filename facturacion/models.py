@@ -14,7 +14,7 @@ class FacturacionMunicipio(models.Model):
         ('UNI', 'Unión de Reyes'),
         ('LIM', 'Limonar'),
         ('CIE', 'Ciénaga de Zapata'),
-        ('JAG', 'Jagüey Grande'),
+        ('JG', 'Jagüey Grande'),
         ('CAL', 'Calimete'),
     ]
 
@@ -26,7 +26,9 @@ class FacturacionMunicipio(models.Model):
     total_facturado = models.FloatField()
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
-
+    consumo_transmision = models.FloatField(default=0.0)
+    
+    
     class Meta:
         unique_together = ('municipio', 'mes', 'año')
         ordering = ['año', 'mes', 'municipio']

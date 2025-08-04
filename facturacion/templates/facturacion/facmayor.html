@@ -2,7 +2,6 @@
 {% block title %}Facturación Mayor | UNE Matanzas{% endblock %}
 {% block content %}
 <div class="container-fluid py-3">
-    <!-- Breadcrumb navegación -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb bg-une-light p-2 rounded">
             <li class="breadcrumb-item"><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i></a></li>
@@ -41,6 +40,7 @@
                         <div class="col-md-4">
                             <label for="id_archivo_servicios" class="form-label">Archivo Servicios</label>
                             {{ form.archivo_servicios }}
+                            <small class="text-muted">Debe contener columnas NTA y KWHT</small>
                         </div>
                         <div class="col-12 text-end">
                             <button type="submit" class="btn btn-une px-4">
@@ -79,15 +79,17 @@
                                     <th>Municipio</th>
                                     <th class="text-end">Facturación Mayor (MWh)</th>
                                     <th class="text-end">Facturación Menor (MWh)</th>
+                                    <th class="text-end">Consumo Transmisión (MWh)</th>
                                     <th class="text-end">Total Facturado (MWh)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for item in datos %}
                                 <tr>
-                                    <td>{{ item.municipio }}</td>
+                                    <td>{{ item.get_municipio_display }}</td>
                                     <td class="text-end">{{ item.facturacion_mayor|floatformat:2 }}</td>
                                     <td class="text-end">{{ item.facturacion_menor|floatformat:2 }}</td>
+                                    <td class="text-end">{{ item.consumo_transmision|default:0.0|floatformat:2 }}</td>
                                     <td class="text-end">{{ item.total_facturado|floatformat:2 }}</td>
                                 </tr>
                                 {% endfor %}
@@ -112,6 +114,7 @@
                                         <th>Municipio</th>
                                         <th class="text-end">Facturación Mayor (MWh)</th>
                                         <th class="text-end">Facturación Menor (MWh)</th>
+                                        <th class="text-end">Consumo Transmisión (MWh)</th>
                                         <th class="text-end">Total Facturado (MWh)</th>
                                     </tr>
                                 </thead>
@@ -121,6 +124,7 @@
                                         <td>{{ item.get_municipio_display }}</td>
                                         <td class="text-end">{{ item.facturacion_mayor|floatformat:2 }}</td>
                                         <td class="text-end">{{ item.facturacion_menor|floatformat:2 }}</td>
+                                        <td class="text-end">{{ item.consumo_transmision|floatformat:2 }}</td>
                                         <td class="text-end">{{ item.total_facturado|floatformat:2 }}</td>
                                     </tr>
                                     {% endfor %}
@@ -140,12 +144,9 @@
 
 {% block scripts %}
 <script>
-// Añadir clase a los campos del formulario (si no tienes django-widget-tweaks, puedes quitar esto)
-if (typeof $ !== 'undefined') {
-    $(function() {
-        $('#id_mes, #id_año').addClass('form-select');
-        $('#id_archivo_excel').addClass('form-control');
-    });
-}
+$(function() {
+    $('#id_mes, #id_año').addClass('form-select');
+    $('#id_archivo_excel, #id_archivo_servicios').addClass('form-control');
+});
 </script>
 {% endblock %}

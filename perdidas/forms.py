@@ -54,9 +54,9 @@ class CargaConsumoForm(forms.Form):
                 'COL': 'OBET Colón',
                 'JOV': 'OBET Jovellanos',
                 'BET': 'OBET Jagüey',
-                'UR': 'OBET Unión',
+                'UNI': 'OBET Unión',
                 'LIM': 'OBET Unión',
-                'CZ': 'OBET Jagüey',
+                'CIE': 'OBET Jagüey',
                 'JG': 'OBET Jagüey',
                 'CAL': 'OBET Colón'
             }

@@ -1,119 +1,177 @@
 {% extends 'usuarios/base.html' %}
+{% load humanize %}
+
 {% block content %}
-<div class="container mt-4">
-    <!-- Selector de Mes/Año -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <form method="get" class="row g-3 align-items-center">
-                <div class="col-md-5">
-                    <select name="mes" class="form-select">
+<div class="container-fluid mt-4">
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="mes" class="form-label">Mes</label>
+                    <select name="mes" id="mes" class="form-select">
                         {% for num, nombre in meses %}
-                        <option value="{{ num }}" {% if num == mes_actual %}selected{% endif %}>{{ nombre }}</option>
+                        <option value="{{ num }}" {% if num == mes_actual %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-5">
-                    <select name="año" class="form-select">
+                <div class="col-md-4">
+                    <label for="año" class="form-label">Año</label>
+                    <select name="año" id="año" class="form-select">
                         {% for a in años %}
-                        <option value="{{ a }}" {% if a == año_actual %}selected{% endif %}>{{ a }}</option>
+                        <option value="{{ a }}" {% if a == año_actual %}selected{% endif %}>
+                            {{ a }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i> Filtrar
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Pestañas de Municipios -->
-    <ul class="nav nav-tabs" id="municipiosTab" role="tablist">
-        {% for mun in municipios %}
-        <li class="nav-item" role="presentation">
-            <button class="nav-link {% if forloop.first %}active{% endif %}" 
-                    id="{{ mun.codigo }}-tab" 
-                    data-bs-toggle="tab" 
-                    data-bs-target="#{{ mun.codigo }}" 
-                    type="button">
-                {{ mun.nombre }}
-            </button>
-        </li>
-        {% endfor %}
-    </ul>
-
-    <!-- Contenido de las Pestañas -->
-    <div class="tab-content p-3 border border-top-0 rounded-bottom bg-white">
-        {% for mun in municipios %}
-        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
-             id="{{ mun.codigo }}" 
-             role="tabpanel">
-             
-            <!-- Tabla de Datos -->
-            <table class="table table-bordered">
-                <tbody>
-                    <!-- Energía en Barra -->
-                    <tr>
-                        <th colspan="2">TOTAL DE ENERGÍA EN BARRA</th>
-                        <td class="text-end">{{ mun.energia_barra|floatformat:2 }} MWh</td>
-                    </tr>
-                    
-                    <!-- Facturación -->
-                    <tr>
-                        <td width="20"></td>
-                        <th>Facturación Mayor</th>
-                        <td class="text-end">{{ mun.fact_mayor|floatformat:2 }}</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <th>Facturación Menor</th>
-                        <td class="text-end">{{ mun.fact_menor|floatformat:2 }}</td>
-                    </tr>
-                    
-                    <!-- Total Ventas -->
-                    <tr class="table-primary">
-                        <th colspan="2">TOTAL DE VENTAS</th>
-                        <td class="text-end">{{ mun.total_ventas|floatformat:2 }}</td>
-                    </tr>
-                    
-                    <!-- Pérdidas -->
-                    <tr>
-                        <th colspan="2">PÉRDIDAS EN DISTRIBUCIÓN</th>
-                        <td class="text-end">{{ mun.perdidas_mwh|floatformat:2 }} MWh</td>
-                    </tr>
-                    <tr>
-                        <th colspan="2">PÉRDIDAS (%)</th>
-                        <td class="text-end">{{ mun.perdidas_pct|floatformat:2 }}%</td>
-                    </tr>
-                    
-                    <!-- Acumulados -->
-                    <tr class="table-info">
-                        <th colspan="3" class="text-center">ACUMULADOS</th>
-                    </tr>
-                    <tr>
-                        <th colspan="2">Energía Acumulada</th>
-                        <td class="text-end">{{ mun.acumulado_energia|floatformat:2 }} MWh</td>
-                    </tr>
-                    <tr>
-                        <th colspan="2">Pérdidas Acumuladas (MWh)</th>
-                        <td class="text-end">{{ mun.acumulado_perdidas|floatformat:2 }}</td>
-                    </tr>
-                    <tr>
-                        <th colspan="2">Pérdidas Acumuladas (%)</th>
-                        <td class="text-end">{{ mun.acumulado_pct|floatformat:2 }}%</td>
-                    </tr>
-                </tbody>
-            </table>
+    <!-- Tablas para cada municipio y provincia -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="municipiosTab" role="tablist">
+                {% for mun in municipios %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                            id="{{ mun.codigo }}-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#{{ mun.codigo }}" 
+                            type="button">
+                        {{ mun.nombre }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
         </div>
-        {% endfor %}
+        
+        <div class="card-body">
+            <div class="tab-content" id="municipiosContent">
+                {% for mun in municipios %}
+                <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                     id="{{ mun.codigo }}" 
+                     role="tabpanel">
+                     
+                    <!-- Tabla para cada municipio/provincia -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th colspan="2" class="text-center">INDICADORES</th>
+                                    <th class="text-center">VALOR</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Energía en Barra -->
+                                <tr class="table-info">
+                                    <th colspan="2">TOTAL DE ENERGÍA EN BARRA</th>
+                                    <td class="text-end">{{ mun.energia_barra|floatformat:2|intcomma }} MWh</td>
+                                </tr>
+                                
+                                <!-- Facturación -->
+                                <tr>
+                                    <td width="20"></td>
+                                    <th>Facturación Mayor</th>
+                                    <td class="text-end">{{ mun.fact_mayor|floatformat:2|intcomma }}</td>
+                                </tr>
+                                {% if mun.codigo == 'provincia' %}
+                                <tr>
+                                    <td></td>
+                                    <th>Estación Cabecera (MWh)</th>
+                                    <td class="text-end">{{ mun.estacion_cabecera|default:0|floatformat:2|intcomma }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td></td>
+                                    <th>Facturación Menor</th>
+                                    <td class="text-end">{{ mun.fact_menor|floatformat:2|intcomma }}</td>
+                                </tr>
+                                
+                                <!-- Total Ventas -->
+                                <tr class="table-primary">
+                                    <th colspan="2">TOTAL DE VENTAS</th>
+                                    <td class="text-end">{{ mun.total_ventas|floatformat:2|intcomma }}</td>
+                                </tr>
+                                
+                                <!-- Pérdidas -->
+                                <tr>
+                                    <th colspan="2">PÉRDIDAS EN DISTRIBUCIÓN (MWh)</th>
+                                    <td class="text-end">{{ mun.perdidas_mwh|floatformat:2|intcomma }}</td>
+                                </tr>
+                                <tr>
+                                    <th colspan="2">PÉRDIDAS (%)</th>
+                                    <td class="text-end {% if mun.perdidas_pct > 10 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ mun.perdidas_pct|floatformat:2 }}%
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th colspan="2">PLAN DE PÉRDIDAS (%)</th>
+                                    <td class="text-end">{{ mun.plan_pct|floatformat:2 }}%</td>
+                                </tr>
+                                
+                                <!-- Acumulados -->
+                                <tr class="table-info">
+                                    <th colspan="3" class="text-center">ACUMULADOS</th>
+                                </tr>
+                                <tr>
+                                    <th colspan="2">Total de Energía Acumulada</th>
+                                    <td class="text-end">{{ mun.acumulado_energia|floatformat:2|intcomma }} MWh</td>
+                                </tr>
+                                <tr>
+                                    <th colspan="2">Pérdidas Acumuladas (MWh)</th>
+                                    <td class="text-end">{{ mun.acumulado_perdidas|floatformat:2|intcomma }}</td>
+                                </tr>
+                                <tr>
+                                    <th colspan="2">Pérdidas Acumuladas (%)</th>
+                                    <td class="text-end {% if mun.acumulado_pct > 10 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ mun.acumulado_pct|floatformat:2 }}%
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th colspan="2">Plan Pérdidas Acumuladas (%)</th>
+                                    <td class="text-end">{{ mun.plan_acum_pct|floatformat:2 }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  {% endfor %}
-{% endif %}
+{% endblock %}
 
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Inicializar tabs de Bootstrap
+    var triggerTabList = [].slice.call(document.querySelectorAll('#municipiosTab button'))
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl)
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault()
+            tabTrigger.show()
+        })
+    })
+
+    // Formatear selects
+    $('#mes, #año').addClass('form-select')
+    
+    // Resaltar pestaña activa
+    $('#municipiosTab .nav-link').on('shown.bs.tab', function() {
+        $('#municipiosTab .nav-link').removeClass('active')
+        $(this).addClass('active')
+    })
+})
+</script>
 {% endblock %}

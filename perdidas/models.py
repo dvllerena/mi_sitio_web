@@ -22,9 +22,9 @@ class ConsumoEnergia(models.Model):
         ('COL', 'Colón'),
         ('JOV', 'Jovellanos'),
         ('BET', 'Pedro Betancourt'),
-        ('UR', 'Unión de Reyes'),
+        ('UNI', 'Unión de Reyes'),
         ('LIM', 'Limonar'),
-        ('CZ', 'Ciénaga de Zapata'),
+        ('CIE', 'Ciénaga de Zapata'),
         ('JG', 'Jagüey Grande'),
         ('CAL', 'Calimete'),
     ]
@@ -37,6 +37,7 @@ class ConsumoEnergia(models.Model):
     actualizado_en = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'perdidas_consumoenergia'
         verbose_name = "Consumo de Energía"
         verbose_name_plural = "Consumos de Energía"
         unique_together = ('municipio', 'fecha')

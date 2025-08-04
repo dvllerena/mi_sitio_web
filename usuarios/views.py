@@ -24,11 +24,14 @@ def registro(request):
             user = form.save()
             login(request, user)
             messages.success(request, '¡Registro exitoso! Bienvenido/a.')
-            return redirect('home')
+            return redirect('login')
         else:
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
+    else:
+        form = RegistroForm()     
+    return render(request, 'usuarios/registro.html', {'form': form})                 
 def login_view(request):
     """Vista personalizada de login"""
     if request.user.is_authenticated:
