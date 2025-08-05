@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'perdidas',
     'facturacion',
     'infoperdidas',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
