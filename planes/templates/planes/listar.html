@@ -1,0 +1,233 @@
+{% extends 'usuarios/base.html' %}
+{% load static %}
+
+{% block content %}
+{% if messages %}
+<div class="container-fluid mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+<div class="container-fluid">
+    <!-- Card para cargar nuevos planes -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-une-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-upload me-2"></i>Cargar Nuevo Plan</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" class="row g-3">
+                {% csrf_token %}
+                <div class="col-md-6">
+                    <label for="archivo" class="form-label">Archivo Excel</label>
+                    <input type="file" class="form-control" id="archivo" name="archivo" accept=".xlsx" required>
+                    <small class="text-muted">Debe contener hojas 'Acumulados' y 'Mensuales'</small>
+                </div>
+                <div class="col-md-4">
+                    <label for="periodo" class="form-label">Periodo</label>
+                    <input type="text" class="form-control" id="periodo" name="periodo" placeholder="Ej: Plan 2025" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-une w-100">
+                        <i class="fas fa-upload me-2"></i>Cargar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabs para visualización -->
+    <div class="card shadow">
+        <div class="card-header bg-une-secondary text-white">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#municipios">Municipios</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#uebs">UEBs/OBETs</a>
+                </li>
+                <li class="nav-item ms-auto">
+                    <select class="form-select form-select-sm w-auto" id="plan-select">
+                        <option selected>Seleccionar Plan...</option>
+                        {% for plan in planes %}
+                        <option value="{{ plan.id }}">{{ plan.periodo }} - {{ plan.fecha_carga|date:"d/m/Y" }}</option>
+                        {% endfor %}
+                    </select>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Tabla para Municipios -->
+                <div class="tab-pane fade show active" id="municipios">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="tabla-municipios">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Municipio</th>
+                                    <th>Enero</th>
+                                    <th>Febrero</th>
+                                    <th>Marzo</th>
+                                    <th>Abril</th>
+                                    <th>Mayo</th>
+                                    <th>Junio</th>
+                                    <th>Julio</th>
+                                    <th>Agosto</th>
+                                    <th>Septiembre</th>
+                                    <th>Octubre</th>
+                                    <th>Noviembre</th>
+                                    <th>Diciembre</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dato in datos_municipios %}
+                                <tr>
+                                    <td>{{ dato.nombre }}</td>
+                                    <td>{{ dato.enero|floatformat:2 }}%</td>
+                                    <td>{{ dato.febrero|floatformat:2 }}%</td>
+                                    <td>{{ dato.marzo|floatformat:2 }}%</td>
+                                    <td>{{ dato.abril|floatformat:2 }}%</td>
+                                    <td>{{ dato.mayo|floatformat:2 }}%</td>
+                                    <td>{{ dato.junio|floatformat:2 }}%</td>
+                                    <td>{{ dato.julio|floatformat:2 }}%</td>
+                                    <td>{{ dato.agosto|floatformat:2 }}%</td>
+                                    <td>{{ dato.septiembre|floatformat:2 }}%</td>
+                                    <td>{{ dato.octubre|floatformat:2 }}%</td>
+                                    <td>{{ dato.noviembre|floatformat:2 }}%</td>
+                                    <td>{{ dato.diciembre|floatformat:2 }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tabla para UEBs/OBETs -->
+                <div class="tab-pane fade" id="uebs">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="tabla-uebs">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>UEB/OBET</th>
+                                    <th>Enero</th>
+                                    <th>Febrero</th>
+                                    <th>Marzo</th>
+                                    <th>Abril</th>
+                                    <th>Mayo</th>
+                                    <th>Junio</th>
+                                    <th>Julio</th>
+                                    <th>Agosto</th>
+                                    <th>Septiembre</th>
+                                    <th>Octubre</th>
+                                    <th>Noviembre</th>
+                                    <th>Diciembre</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dato in datos_uebs %}
+                                <tr>
+                                    <td>{{ dato.nombre }}</td>
+                                    <td>{{ dato.enero|floatformat:2 }}%</td>
+                                    <td>{{ dato.febrero|floatformat:2 }}%</td>
+                                    <td>{{ dato.marzo|floatformat:2 }}%</td>
+                                    <td>{{ dato.abril|floatformat:2 }}%</td>
+                                    <td>{{ dato.mayo|floatformat:2 }}%</td>
+                                    <td>{{ dato.junio|floatformat:2 }}%</td>
+                                    <td>{{ dato.julio|floatformat:2 }}%</td>
+                                    <td>{{ dato.agosto|floatformat:2 }}%</td>
+                                    <td>{{ dato.septiembre|floatformat:2 }}%</td>
+                                    <td>{{ dato.octubre|floatformat:2 }}%</td>
+                                    <td>{{ dato.noviembre|floatformat:2 }}%</td>
+                                    <td>{{ dato.diciembre|floatformat:2 }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de comparación -->
+<div class="card shadow mt-4">
+    <div class="card-header bg-une-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Comparativo Anual</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="graficoComparativo" height="300"></canvas>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Incluye Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Manejar cambio de plan
+    $('#plan-select').change(function() {
+        const planId = $(this).val();
+        if(planId) {
+            window.location.href = `{% url 'planes:listar' %}?plan=${planId}`;
+        }
+    });
+
+    // Configurar gráfico
+    const ctx = document.getElementById('graficoComparativo').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            datasets: [
+                {
+                    label: 'Municipios (Promedio)',
+                    data: {{ datos_grafico_municipios|safe }},
+                    borderColor: '#F37021',
+                    backgroundColor: 'rgba(243, 112, 33, 0.1)',
+                    tension: 0.3
+                },
+                {
+                    label: 'UEBs/OBETs (Promedio)',
+                    data: {{ datos_grafico_uebs|safe }},
+                    borderColor: '#2A5CAA',
+                    backgroundColor: 'rgba(42, 92, 170, 0.1)',
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

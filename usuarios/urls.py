@@ -24,6 +24,7 @@ urlpatterns = [
              success_url='/password-reset/done/'
          ),
          name='password_reset'),
+
     path('password-reset/done/',
          auth_views.PasswordResetDoneView.as_view(
              template_name='usuarios/registration/password_reset_done.html'

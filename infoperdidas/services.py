@@ -5,6 +5,7 @@ from decimal import Decimal, getcontext
 from perdidas.models import ConsumoEnergia
 from facturacion.models import FacturacionMunicipio
 from .models import ResultadoPerdidas
+from datetime import datetime
 
 getcontext().prec = 6
 
@@ -13,7 +14,6 @@ class CalculadorPerdidas:
     def get_datos_mes(codigo, mes, año):
         """Obtiene y valida los datos necesarios para el cálculo"""
         try:
-            # Consulta optimizada para energía
             energia = ConsumoEnergia.objects.filter(
                 municipio=codigo,
                 fecha__year=año,
@@ -23,7 +23,6 @@ class CalculadorPerdidas:
             if energia <= 0:
                 raise ValueError(f"Consumo energético inválido: {energia} MWh")
 
-            # Obtener facturación
             facturacion = FacturacionMunicipio.objects.get(
                 municipio=codigo,
                 mes=mes,
@@ -56,11 +55,9 @@ class CalculadorPerdidas:
             try:
                 datos = cls.get_datos_mes(codigo, mes, año)
                 
-                # Calcular pérdidas con precisión decimal
                 perdida_mwh = Decimal(datos['energia']) - Decimal(datos['total_ventas'])
                 perdida_pct = (perdida_mwh / Decimal(datos['energia']) * 100) if datos['energia'] > 0 else 0
 
-                # Crear/actualizar registro
                 resultado, created = ResultadoPerdidas.objects.update_or_create(
                     municipio=codigo,
                     mes=mes,
@@ -78,7 +75,8 @@ class CalculadorPerdidas:
                 resultados.append({
                     'municipio': nombre,
                     'codigo': codigo,
-                    'resultado': resultado
+                    'resultado': resultado,
+                    'fecha_calculo': resultado.actualizado_en if not created else resultado.creado_en
                 })
 
             except ValueError as e:
@@ -90,10 +88,9 @@ class CalculadorPerdidas:
     @classmethod
     @transaction.atomic
     def calcular_acumulados(cls, año, mes_fin):
-        """Calcula valores acumulados hasta el mes especificado"""
+        """Calcula valores acumulados hasta el mes especificado por municipio"""
         for codigo, nombre in FacturacionMunicipio.MUNICIPIOS:
             try:
-                # Consultas optimizadas para acumulados
                 consumos = ConsumoEnergia.objects.filter(
                     municipio=codigo,
                     fecha__year=año,
@@ -115,7 +112,6 @@ class CalculadorPerdidas:
                 perdidas_acum = Decimal(energia_acum) - Decimal(ventas_acum)
                 acumulado_pct = (perdidas_acum / Decimal(energia_acum) * 100) if energia_acum > 0 else 0
 
-                # Actualizar solo el registro del mes final
                 ResultadoPerdidas.objects.filter(
                     municipio=codigo,
                     año=año,
@@ -125,10 +121,38 @@ class CalculadorPerdidas:
                     acumulado_ventas=round(float(ventas_acum), 2),
                     acumulado_perdidas=round(float(perdidas_acum), 2),
                     acumulado_pct=round(float(acumulado_pct), 2),
-                    acumulado_fact_mayor=round(float(facturaciones['mayor'] or 0), 2),
-                    acumulado_fact_menor=round(float(facturaciones['menor'] or 0), 2)
                 )
 
             except Exception as e:
                 print(f"Error calculando acumulados para {nombre} ({codigo}): {str(e)}")
                 continue
+
+    @staticmethod
+    def calcular_acumulado_provincial(año, mes):
+        """Calcula el acumulado provincial incluyendo la estación cabecera"""
+        energia_acum = ConsumoEnergia.objects.filter(
+            fecha__year=año,
+            fecha__month__lte=mes
+        ).aggregate(total=Sum('consumo'))['total'] or 0
+
+        ventas_acum_municipios = FacturacionMunicipio.objects.filter(
+            año=año,
+            mes__lte=mes
+        ).aggregate(total=Sum('total_facturado'))['total'] or 0
+
+        ventas_acum_cabecera = FacturacionMunicipio.objects.filter(
+            municipio='CAR',
+            año=año,
+            mes__lte=mes
+        ).aggregate(total=Sum('consumo_transmision'))['total'] or 0
+
+        ventas_total = ventas_acum_municipios + ventas_acum_cabecera
+        perdidas_total = energia_acum - ventas_total
+        perdidas_pct = (perdidas_total / energia_acum * 100) if energia_acum > 0 else 0
+
+        return {
+            'acumulado_energia': round(energia_acum, 2),
+            'acumulado_ventas': round(ventas_total, 2),
+            'acumulado_perdidas': round(perdidas_total, 2),
+            'acumulado_pct': round(perdidas_pct, 2)
+        }

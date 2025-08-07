@@ -2,7 +2,6 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from facturacion.models import FacturacionMunicipio
 
-
 class ResultadoPerdidas(models.Model):
     MUNICIPIOS = FacturacionMunicipio.MUNICIPIOS
     
@@ -34,8 +33,11 @@ class ResultadoPerdidas(models.Model):
     acumulado_energia = models.FloatField(default=0)
     acumulado_perdidas = models.FloatField(default=0)
     acumulado_pct = models.FloatField(default=0)
+    acumulado_ventas = models.FloatField(default=0)
+    plan_pct = models.FloatField(default=0)
+    plan_acum_pct = models.FloatField(default=0)
     creado_en = models.DateTimeField(auto_now_add=True)
-    actualizado_en = models.DateTimeField(auto_now=True)  # Nuevo campo
+    actualizado_en = models.DateTimeField(auto_now=True)
     facturacion_mayor = models.FloatField(default=0)
     facturacion_menor = models.FloatField(default=0)
     
@@ -63,3 +65,5 @@ class ResultadoPerdidas(models.Model):
             raise ValueError("Las ventas no pueden ser mayores que la energía en barra")
             
         super().save(*args, **kwargs)
+        
+        

@@ -1,0 +1,18 @@
+{% extends 'usuarios/base.html' %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-une-secondary text-white">
+        <h4><i class="fas fa-upload me-2"></i>Cargar Plan de Pérdidas</h4>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-une">
+                <i class="fas fa-save me-2"></i>Guardar
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -3,10 +3,10 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- Filtros -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3">
+            <form method="post" action="{% url 'infoperdidas:informe' %}" class="row g-3">
+                {% csrf_token %}
                 <div class="col-md-4">
                     <label for="mes" class="form-label">Mes</label>
                     <select name="mes" id="mes" class="form-select">
@@ -29,14 +29,23 @@
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i> Filtrar
+                        <i class="fas fa-calculator me-2"></i> Calcular y Guardar
                     </button>
                 </div>
             </form>
         </div>
     </div>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
-    <!-- Tablas para cada municipio y provincia -->
     <div class="card">
         <div class="card-header">
             <ul class="nav nav-tabs card-header-tabs" id="municipiosTab" role="tablist">
@@ -60,8 +69,7 @@
                 <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
                      id="{{ mun.codigo }}" 
                      role="tabpanel">
-                     
-                    <!-- Tabla para cada municipio/provincia -->
+                      
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead class="table-dark">
@@ -71,13 +79,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Energía en Barra -->
                                 <tr class="table-info">
                                     <th colspan="2">TOTAL DE ENERGÍA EN BARRA</th>
                                     <td class="text-end">{{ mun.energia_barra|floatformat:2|intcomma }} MWh</td>
                                 </tr>
-                                
-                                <!-- Facturación -->
                                 <tr>
                                     <td width="20"></td>
                                     <th>Facturación Mayor</th>
@@ -95,14 +100,10 @@
                                     <th>Facturación Menor</th>
                                     <td class="text-end">{{ mun.fact_menor|floatformat:2|intcomma }}</td>
                                 </tr>
-                                
-                                <!-- Total Ventas -->
                                 <tr class="table-primary">
                                     <th colspan="2">TOTAL DE VENTAS</th>
                                     <td class="text-end">{{ mun.total_ventas|floatformat:2|intcomma }}</td>
                                 </tr>
-                                
-                                <!-- Pérdidas -->
                                 <tr>
                                     <th colspan="2">PÉRDIDAS EN DISTRIBUCIÓN (MWh)</th>
                                     <td class="text-end">{{ mun.perdidas_mwh|floatformat:2|intcomma }}</td>
@@ -117,8 +118,6 @@
                                     <th colspan="2">PLAN DE PÉRDIDAS (%)</th>
                                     <td class="text-end">{{ mun.plan_pct|floatformat:2 }}%</td>
                                 </tr>
-                                
-                                <!-- Acumulados -->
                                 <tr class="table-info">
                                     <th colspan="3" class="text-center">ACUMULADOS</th>
                                 </tr>
@@ -154,7 +153,6 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    // Inicializar tabs de Bootstrap
     var triggerTabList = [].slice.call(document.querySelectorAll('#municipiosTab button'))
     triggerTabList.forEach(function (triggerEl) {
         var tabTrigger = new bootstrap.Tab(triggerEl)
@@ -164,10 +162,8 @@ $(document).ready(function() {
         })
     })
 
-    // Formatear selects
     $('#mes, #año').addClass('form-select')
     
-    // Resaltar pestaña activa
     $('#municipiosTab .nav-link').on('shown.bs.tab', function() {
         $('#municipiosTab .nav-link').removeClass('active')
         $(this).addClass('active')
