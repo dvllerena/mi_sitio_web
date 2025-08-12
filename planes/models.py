@@ -12,7 +12,10 @@ class Plan(models.Model):
 class DatosMunicipio(models.Model):
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='municipios')
     nombre = models.CharField(max_length=100)
+    obet = models.CharField(max_length=50, blank=True)
+    es_mensual = models.BooleanField(default=False)
     
+    # Campos mensuales
     enero = models.FloatField(null=True, blank=True)
     febrero = models.FloatField(null=True, blank=True)
     marzo = models.FloatField(null=True, blank=True)
@@ -32,7 +35,9 @@ class DatosMunicipio(models.Model):
 class DatosUEB(models.Model):
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='uebs')
     nombre = models.CharField(max_length=100)
+    es_mensual = models.BooleanField(default=False)
     
+    # Campos mensuales
     enero = models.FloatField(null=True, blank=True)
     febrero = models.FloatField(null=True, blank=True)
     marzo = models.FloatField(null=True, blank=True)

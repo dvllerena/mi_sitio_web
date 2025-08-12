@@ -2,232 +2,382 @@
 {% load static %}
 
 {% block content %}
-{% if messages %}
-<div class="container-fluid mt-3">
-    {% for message in messages %}
-    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-<div class="container-fluid">
-    <!-- Card para cargar nuevos planes -->
+<div class="container-fluid py-4">
+    <!-- Formulario de carga (se mantiene igual) -->
     <div class="card shadow mb-4">
-        <div class="card-header bg-une-primary text-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-file-upload me-2"></i>Cargar Nuevo Plan</h5>
-            </div>
+        <div class="card-header bg-une-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-file-upload me-2"></i>Cargar Nuevo Plan</h5>
         </div>
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data" class="row g-3">
+            <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                 {% csrf_token %}
-                <div class="col-md-6">
-                    <label for="archivo" class="form-label">Archivo Excel</label>
-                    <input type="file" class="form-control" id="archivo" name="archivo" accept=".xlsx" required>
-                    <small class="text-muted">Debe contener hojas 'Acumulados' y 'Mensuales'</small>
-                </div>
-                <div class="col-md-4">
-                    <label for="periodo" class="form-label">Periodo</label>
-                    <input type="text" class="form-control" id="periodo" name="periodo" placeholder="Ej: Plan 2025" required>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-une w-100">
-                        <i class="fas fa-upload me-2"></i>Cargar
-                    </button>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="archivo" class="form-label">Archivo Excel</label>
+                        <input type="file" class="form-control" id="archivo" name="archivo" accept=".xlsx, .xls" required>
+                        <div class="invalid-feedback">
+                            Por favor seleccione un archivo Excel válido.
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="periodo" class="form-label">Período (Año)</label>
+                        <input type="text" class="form-control" id="periodo" name="periodo" pattern="\d{4}" required>
+                        <div class="invalid-feedback">
+                            Por favor ingrese un año válido (ej: 2023).
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-une w-100">
+                            <i class="fas fa-upload me-2"></i>Cargar
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Tabs para visualización -->
-    <div class="card shadow">
+    <!-- Selector de Plan (se mantiene igual) -->
+    <div class="card shadow mb-4">
         <div class="card-header bg-une-secondary text-white">
-            <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item">
-                    <a class="nav-link active" data-bs-toggle="tab" href="#municipios">Municipios</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-bs-toggle="tab" href="#uebs">UEBs/OBETs</a>
-                </li>
-                <li class="nav-item ms-auto">
-                    <select class="form-select form-select-sm w-auto" id="plan-select">
-                        <option selected>Seleccionar Plan...</option>
+            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Seleccionar Plan</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" id="plan-form">
+                <div class="input-group">
+                    <select class="form-select" id="plan-select" name="plan" onchange="this.form.submit()">
+                        <option value="">-- Seleccione un plan --</option>
                         {% for plan in planes %}
-                        <option value="{{ plan.id }}">{{ plan.periodo }} - {{ plan.fecha_carga|date:"d/m/Y" }}</option>
+                        <option value="{{ plan.id }}" {% if plan.id == plan_seleccionado.id %}selected{% endif %}>
+                            {{ plan.periodo }} - {{ plan.fecha_carga|date:"d/m/Y H:i" }}
+                        </option>
                         {% endfor %}
                     </select>
+                    {% if plan_seleccionado %}
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+                        <i class="fas fa-trash-alt me-1"></i> Eliminar
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if plan_seleccionado %}
+    <!-- Pestañas principales -->
+    <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="municipios-tab" data-bs-toggle="tab" data-bs-target="#municipios-content" type="button">
+                <i class="fas fa-city me-1"></i> Municipios
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="uebs-tab" data-bs-toggle="tab" data-bs-target="#uebs-content" type="button">
+                <i class="fas fa-building me-1"></i> UEBs/OBETs
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabContent">
+        <!-- Contenido de Municipios -->
+        <div class="tab-pane fade show active" id="municipios-content" role="tabpanel">
+            <!-- Sub-pestañas para Municipios -->
+            <ul class="nav nav-tabs mb-3" id="municipiosSubTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="municipios-acum-tab" data-bs-toggle="tab" data-bs-target="#municipios-acum" type="button">
+                        Acumulados
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="municipios-mensual-tab" data-bs-toggle="tab" data-bs-target="#municipios-mensual" type="button">
+                        Mensuales
+                    </button>
                 </li>
             </ul>
-        </div>
 
-        <div class="card-body">
             <div class="tab-content">
-                <!-- Tabla para Municipios -->
-                <div class="tab-pane fade show active" id="municipios">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="tabla-municipios">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Municipio</th>
-                                    <th>Enero</th>
-                                    <th>Febrero</th>
-                                    <th>Marzo</th>
-                                    <th>Abril</th>
-                                    <th>Mayo</th>
-                                    <th>Junio</th>
-                                    <th>Julio</th>
-                                    <th>Agosto</th>
-                                    <th>Septiembre</th>
-                                    <th>Octubre</th>
-                                    <th>Noviembre</th>
-                                    <th>Diciembre</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for dato in datos_municipios %}
-                                <tr>
-                                    <td>{{ dato.nombre }}</td>
-                                    <td>{{ dato.enero|floatformat:2 }}%</td>
-                                    <td>{{ dato.febrero|floatformat:2 }}%</td>
-                                    <td>{{ dato.marzo|floatformat:2 }}%</td>
-                                    <td>{{ dato.abril|floatformat:2 }}%</td>
-                                    <td>{{ dato.mayo|floatformat:2 }}%</td>
-                                    <td>{{ dato.junio|floatformat:2 }}%</td>
-                                    <td>{{ dato.julio|floatformat:2 }}%</td>
-                                    <td>{{ dato.agosto|floatformat:2 }}%</td>
-                                    <td>{{ dato.septiembre|floatformat:2 }}%</td>
-                                    <td>{{ dato.octubre|floatformat:2 }}%</td>
-                                    <td>{{ dato.noviembre|floatformat:2 }}%</td>
-                                    <td>{{ dato.diciembre|floatformat:2 }}%</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <!-- Tabla de Municipios (Acumulados) -->
+                <div class="tab-pane fade show active" id="municipios-acum" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-une-secondary text-white">
+                            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Datos Acumulados</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Municipio</th>
+                                            <th class="text-center">Ene</th>
+                                            <th class="text-center">Feb</th>
+                                            <th class="text-center">Mar</th>
+                                            <th class="text-center">Abr</th>
+                                            <th class="text-center">May</th>
+                                            <th class="text-center">Jun</th>
+                                            <th class="text-center">Jul</th>
+                                            <th class="text-center">Ago</th>
+                                            <th class="text-center">Sep</th>
+                                            <th class="text-center">Oct</th>
+                                            <th class="text-center">Nov</th>
+                                            <th class="text-center">Dic</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for dato in datos_municipios_acum %}
+                                        <tr>
+                                            <td class="fw-bold">{{ dato.nombre }}</td>
+                                            <td class="text-center">{{ dato.enero|default_if_none:"-"|floatformat:2 }}{% if dato.enero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.febrero|default_if_none:"-"|floatformat:2 }}{% if dato.febrero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.marzo|default_if_none:"-"|floatformat:2 }}{% if dato.marzo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.abril|default_if_none:"-"|floatformat:2 }}{% if dato.abril is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.mayo|default_if_none:"-"|floatformat:2 }}{% if dato.mayo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.junio|default_if_none:"-"|floatformat:2 }}{% if dato.junio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.julio|default_if_none:"-"|floatformat:2 }}{% if dato.julio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.agosto|default_if_none:"-"|floatformat:2 }}{% if dato.agosto is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.septiembre|default_if_none:"-"|floatformat:2 }}{% if dato.septiembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.octubre|default_if_none:"-"|floatformat:2 }}{% if dato.octubre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.noviembre|default_if_none:"-"|floatformat:2 }}{% if dato.noviembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.diciembre|default_if_none:"-"|floatformat:2 }}{% if dato.diciembre is not None %}%{% endif %}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Tabla para UEBs/OBETs -->
-                <div class="tab-pane fade" id="uebs">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="tabla-uebs">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>UEB/OBET</th>
-                                    <th>Enero</th>
-                                    <th>Febrero</th>
-                                    <th>Marzo</th>
-                                    <th>Abril</th>
-                                    <th>Mayo</th>
-                                    <th>Junio</th>
-                                    <th>Julio</th>
-                                    <th>Agosto</th>
-                                    <th>Septiembre</th>
-                                    <th>Octubre</th>
-                                    <th>Noviembre</th>
-                                    <th>Diciembre</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for dato in datos_uebs %}
-                                <tr>
-                                    <td>{{ dato.nombre }}</td>
-                                    <td>{{ dato.enero|floatformat:2 }}%</td>
-                                    <td>{{ dato.febrero|floatformat:2 }}%</td>
-                                    <td>{{ dato.marzo|floatformat:2 }}%</td>
-                                    <td>{{ dato.abril|floatformat:2 }}%</td>
-                                    <td>{{ dato.mayo|floatformat:2 }}%</td>
-                                    <td>{{ dato.junio|floatformat:2 }}%</td>
-                                    <td>{{ dato.julio|floatformat:2 }}%</td>
-                                    <td>{{ dato.agosto|floatformat:2 }}%</td>
-                                    <td>{{ dato.septiembre|floatformat:2 }}%</td>
-                                    <td>{{ dato.octubre|floatformat:2 }}%</td>
-                                    <td>{{ dato.noviembre|floatformat:2 }}%</td>
-                                    <td>{{ dato.diciembre|floatformat:2 }}%</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <!-- Tabla de Municipios (Mensuales) -->
+                <div class="tab-pane fade" id="municipios-mensual" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-une-secondary text-white">
+                            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Datos Mensuales</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Municipio</th>
+                                            <th class="text-center">Ene</th>
+                                            <th class="text-center">Feb</th>
+                                            <th class="text-center">Mar</th>
+                                            <th class="text-center">Abr</th>
+                                            <th class="text-center">May</th>
+                                            <th class="text-center">Jun</th>
+                                            <th class="text-center">Jul</th>
+                                            <th class="text-center">Ago</th>
+                                            <th class="text-center">Sep</th>
+                                            <th class="text-center">Oct</th>
+                                            <th class="text-center">Nov</th>
+                                            <th class="text-center">Dic</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for dato in datos_municipios_mensual %}
+                                        <tr>
+                                            <td class="fw-bold">{{ dato.nombre }}</td>
+                                            <td class="text-center">{{ dato.enero|default_if_none:"-"|floatformat:2 }}{% if dato.enero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.febrero|default_if_none:"-"|floatformat:2 }}{% if dato.febrero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.marzo|default_if_none:"-"|floatformat:2 }}{% if dato.marzo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.abril|default_if_none:"-"|floatformat:2 }}{% if dato.abril is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.mayo|default_if_none:"-"|floatformat:2 }}{% if dato.mayo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.junio|default_if_none:"-"|floatformat:2 }}{% if dato.junio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.julio|default_if_none:"-"|floatformat:2 }}{% if dato.julio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.agosto|default_if_none:"-"|floatformat:2 }}{% if dato.agosto is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.septiembre|default_if_none:"-"|floatformat:2 }}{% if dato.septiembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.octubre|default_if_none:"-"|floatformat:2 }}{% if dato.octubre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.noviembre|default_if_none:"-"|floatformat:2 }}{% if dato.noviembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.diciembre|default_if_none:"-"|floatformat:2 }}{% if dato.diciembre is not None %}%{% endif %}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido de UEBs/OBETs -->
+        <div class="tab-pane fade" id="uebs-content" role="tabpanel">
+            <!-- Sub-pestañas para UEBs -->
+            <ul class="nav nav-tabs mb-3" id="uebsSubTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="uebs-acum-tab" data-bs-toggle="tab" data-bs-target="#uebs-acum" type="button">
+                        Acumulados
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="uebs-mensual-tab" data-bs-toggle="tab" data-bs-target="#uebs-mensual" type="button">
+                        Mensuales
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Tabla de UEBs (Acumulados) -->
+                <div class="tab-pane fade show active" id="uebs-acum" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-une-secondary text-white">
+                            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Datos Acumulados</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>UEB/OBET</th>
+                                            <th class="text-center">Ene</th>
+                                            <th class="text-center">Feb</th>
+                                            <th class="text-center">Mar</th>
+                                            <th class="text-center">Abr</th>
+                                            <th class="text-center">May</th>
+                                            <th class="text-center">Jun</th>
+                                            <th class="text-center">Jul</th>
+                                            <th class="text-center">Ago</th>
+                                            <th class="text-center">Sep</th>
+                                            <th class="text-center">Oct</th>
+                                            <th class="text-center">Nov</th>
+                                            <th class="text-center">Dic</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for dato in datos_uebs_acum %}
+                                        <tr>
+                                            <td class="fw-bold">{{ dato.nombre }}</td>
+                                            <td class="text-center">{{ dato.enero|default_if_none:"-"|floatformat:2 }}{% if dato.enero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.febrero|default_if_none:"-"|floatformat:2 }}{% if dato.febrero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.marzo|default_if_none:"-"|floatformat:2 }}{% if dato.marzo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.abril|default_if_none:"-"|floatformat:2 }}{% if dato.abril is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.mayo|default_if_none:"-"|floatformat:2 }}{% if dato.mayo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.junio|default_if_none:"-"|floatformat:2 }}{% if dato.junio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.julio|default_if_none:"-"|floatformat:2 }}{% if dato.julio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.agosto|default_if_none:"-"|floatformat:2 }}{% if dato.agosto is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.septiembre|default_if_none:"-"|floatformat:2 }}{% if dato.septiembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.octubre|default_if_none:"-"|floatformat:2 }}{% if dato.octubre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.noviembre|default_if_none:"-"|floatformat:2 }}{% if dato.noviembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.diciembre|default_if_none:"-"|floatformat:2 }}{% if dato.diciembre is not None %}%{% endif %}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de UEBs (Mensuales) -->
+                <div class="tab-pane fade" id="uebs-mensual" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-une-secondary text-white">
+                            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Datos Mensuales</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>UEB/OBET</th>
+                                            <th class="text-center">Ene</th>
+                                            <th class="text-center">Feb</th>
+                                            <th class="text-center">Mar</th>
+                                            <th class="text-center">Abr</th>
+                                            <th class="text-center">May</th>
+                                            <th class="text-center">Jun</th>
+                                            <th class="text-center">Jul</th>
+                                            <th class="text-center">Ago</th>
+                                            <th class="text-center">Sep</th>
+                                            <th class="text-center">Oct</th>
+                                            <th class="text-center">Nov</th>
+                                            <th class="text-center">Dic</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for dato in datos_uebs_mensual %}
+                                        <tr>
+                                            <td class="fw-bold">{{ dato.nombre }}</td>
+                                            <td class="text-center">{{ dato.enero|default_if_none:"-"|floatformat:2 }}{% if dato.enero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.febrero|default_if_none:"-"|floatformat:2 }}{% if dato.febrero is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.marzo|default_if_none:"-"|floatformat:2 }}{% if dato.marzo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.abril|default_if_none:"-"|floatformat:2 }}{% if dato.abril is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.mayo|default_if_none:"-"|floatformat:2 }}{% if dato.mayo is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.junio|default_if_none:"-"|floatformat:2 }}{% if dato.junio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.julio|default_if_none:"-"|floatformat:2 }}{% if dato.julio is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.agosto|default_if_none:"-"|floatformat:2 }}{% if dato.agosto is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.septiembre|default_if_none:"-"|floatformat:2 }}{% if dato.septiembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.octubre|default_if_none:"-"|floatformat:2 }}{% if dato.octubre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.noviembre|default_if_none:"-"|floatformat:2 }}{% if dato.noviembre is not None %}%{% endif %}</td>
+                                            <td class="text-center">{{ dato.diciembre|default_if_none:"-"|floatformat:2 }}{% if dato.diciembre is not None %}%{% endif %}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No hay datos para mostrar. Por favor seleccione un plan o cargue uno nuevo.
+    </div>
+    {% endif %}
 </div>
 
-<!-- Gráfico de comparación -->
-<div class="card shadow mt-4">
-    <div class="card-header bg-une-secondary text-white">
-        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Comparativo Anual</h5>
-    </div>
-    <div class="card-body">
-        <canvas id="graficoComparativo" height="300"></canvas>
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-une-primary text-white">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro que desea eliminar el plan {{ plan_seleccionado.periodo }} cargado el {{ plan_seleccionado.fecha_carga|date:"d/m/Y" }}?
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Esta acción no se puede deshacer.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'planes:eliminar_plan' plan_seleccionado.id|default:'0' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
-<!-- Incluye Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-$(document).ready(function() {
-    // Manejar cambio de plan
-    $('#plan-select').change(function() {
-        const planId = $(this).val();
-        if(planId) {
-            window.location.href = `{% url 'planes:listar' %}?plan=${planId}`;
-        }
-    });
+// Validación del formulario
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
 
-    // Configurar gráfico
-    const ctx = document.getElementById('graficoComparativo').getContext('2d');
-    const chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-            datasets: [
-                {
-                    label: 'Municipios (Promedio)',
-                    data: {{ datos_grafico_municipios|safe }},
-                    borderColor: '#F37021',
-                    backgroundColor: 'rgba(243, 112, 33, 0.1)',
-                    tension: 0.3
-                },
-                {
-                    label: 'UEBs/OBETs (Promedio)',
-                    data: {{ datos_grafico_uebs|safe }},
-                    borderColor: '#2A5CAA',
-                    backgroundColor: 'rgba(42, 92, 170, 0.1)',
-                    tension: 0.3
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + context.raw + '%';
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        }
-                    }
-                }
-            }
-        }
-    });
+// Actualizar automáticamente al seleccionar un plan
+document.getElementById('plan-select').addEventListener('change', function() {
+    document.getElementById('plan-form').submit();
 });
 </script>
 {% endblock %}

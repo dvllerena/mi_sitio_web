@@ -1,146 +1,230 @@
 from django.shortcuts import render, redirect
 from django.views import View
-from .models import Plan, DatosMunicipio, DatosUEB
-from .forms import PlanForm
-import pandas as pd
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
 from django.db import transaction
-from datetime import datetime
 from django.contrib import messages
 from django.utils import timezone
+import pandas as pd
+from .models import Plan, DatosMunicipio, DatosUEB
+from .forms import PlanForm
+import logging
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
 
+logger = logging.getLogger(__name__)
 
+# Configuración básica del logging (solo en desarrollo)
+if settings.DEBUG:
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+# Mapeo de municipios a OBETs (definido localmente para evitar dependencia)
+MUNICIPIO_TO_OBET = {
+    'Matanzas': 'OBET Matanzas',
+    'Cárdenas': 'OBET Cárdenas',
+    'Unión de Reyes': 'OBET Unión',
+    'Limonar': 'OBET Unión',
+    'Colón': 'OBET Colón',
+    'Martí': 'OBET Colón',
+    'Los Arabos': 'OBET Colón',
+    'Calimete': 'OBET Colón',
+    'Perico': 'OBET Jovellanos',
+    'Pedro Betancourt': 'OBET Jagüey',
+    'Jovellanos': 'OBET Jovellanos',
+    'Jagúey Grande': 'OBET Jagüey',
+    'Ciénaga de Zapata': 'OBET Jagüey',
+    'Varadero': 'OBET Varadero',
+    'Provincia': ''
+}
 
 class PlanesView(View):
     template_name = 'planes/listar.html'
     
     def get(self, request):
-        # Obtener el plan seleccionado o el más reciente
         plan_id = request.GET.get('plan')
-        if plan_id:
-            plan_seleccionado = Plan.objects.get(id=plan_id)
-        else:
-            plan_seleccionado = Plan.objects.last()
-        
-        # Obtener todos los planes para el dropdown
-        planes = Plan.objects.all().order_by('-fecha_carga')
-        
-        # Obtener datos para las tablas y gráfico
-        datos_municipios = []
-        datos_uebs = []
-        datos_grafico_municipios = [0]*12
-        datos_grafico_uebs = [0]*12
+        plan_seleccionado = Plan.objects.filter(id=plan_id).first() if plan_id else Plan.objects.last()
         
         if plan_seleccionado:
-            # Datos para tablas
-            datos_municipios = DatosMunicipio.objects.filter(plan=plan_seleccionado)
-            datos_uebs = DatosUEB.objects.filter(plan=plan_seleccionado)
+            # Organizar datos para el template
+            datos_municipios_acum = DatosMunicipio.objects.filter(
+                plan=plan_seleccionado, 
+                es_mensual=False
+            ).order_by('nombre')
             
-            # Preparar datos para gráfico (promedios mensuales)
-            if datos_municipios.exists():
-                meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
-                         'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-                
-                for i, mes in enumerate(meses):
-                    valores = [getattr(m, mes) for m in datos_municipios if getattr(m, mes) is not None]
-                    datos_grafico_municipios[i] = sum(valores)/len(valores) if valores else 0
-                    
-                    valores_ueb = [getattr(u, mes) for u in datos_uebs if getattr(u, mes) is not None]
-                    datos_grafico_uebs[i] = sum(valores_ueb)/len(valores_ueb) if valores_ueb else 0
+            datos_municipios_mensual = DatosMunicipio.objects.filter(
+                plan=plan_seleccionado, 
+                es_mensual=True
+            ).order_by('nombre')
+            
+            datos_uebs_acum = DatosUEB.objects.filter(
+                plan=plan_seleccionado,
+                es_mensual=False
+            ).order_by('nombre')
+            
+            datos_uebs_mensual = DatosUEB.objects.filter(
+                plan=plan_seleccionado,
+                es_mensual=True
+            ).order_by('nombre')
+        else:
+            datos_municipios_acum = datos_municipios_mensual = []
+            datos_uebs_acum = datos_uebs_mensual = []
         
         context = {
-            'planes': planes,
+            'planes': Plan.objects.all().order_by('-fecha_carga'),
             'plan_seleccionado': plan_seleccionado,
-            'datos_municipios': datos_municipios,
-            'datos_uebs': datos_uebs,
-            'datos_grafico_municipios': datos_grafico_municipios,
-            'datos_grafico_uebs': datos_grafico_uebs,
+            'datos_municipios_acum': datos_municipios_acum,
+            'datos_municipios_mensual': datos_municipios_mensual,
+            'datos_uebs_acum': datos_uebs_acum,
+            'datos_uebs_mensual': datos_uebs_mensual,
+            'meses': ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
         }
         return render(request, self.template_name, context)
     
     def post(self, request):
+        logger.debug("Iniciando vista POST de Planes")
         form = PlanForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    archivo = request.FILES['archivo']
-                    periodo = form.cleaned_data['periodo']
-                    
-                    # Leer archivo Excel
+        
+        if not form.is_valid():
+            logger.warning(f"Formulario inválido: {form.errors}")
+            for error in form.errors.values():
+                messages.error(request, error)
+            return redirect('planes:listar')
+        
+        try:
+            with transaction.atomic():
+                logger.debug("Iniciando transacción atómica")
+                archivo = request.FILES['archivo']
+                periodo = form.cleaned_data['periodo']
+                logger.debug(f"Procesando archivo: {archivo.name} para periodo: {periodo}")
+                
+                try:
                     xls = pd.ExcelFile(archivo)
-                    
-                    # Verificar hojas requeridas
-                    if 'Acumulados' not in xls.sheet_names or 'Mensuales' not in xls.sheet_names:
-                        messages.error(request, "El archivo debe contener las hojas 'Acumulados' y 'Mensuales'")
-                        return redirect('planes:listar')
-                    
-                    # Crear nuevo plan
-                    plan = Plan.objects.create(
-                        periodo=periodo,
-                        archivo=archivo,
-                        fecha_carga=timezone.now()
-                    )
-                    
-                    # Procesar datos de municipios (hoja Acumulados)
-                    df_municipios = pd.read_excel(xls, sheet_name='Acumulados', header=2)  # Saltar 2 filas de encabezado
-                    df_municipios = df_municipios[df_municipios['Municipio'].notna()]  # Filtrar filas vacías
-                    
-                    for _, row in df_municipios.iterrows():
-                        if row['Municipio'] != 'Provincia' and pd.notna(row['Municipio']):
-                            DatosMunicipio.objects.create(
-                                plan=plan,
-                                nombre=row['Municipio'],
-                                enero=row.get('Enero'),
-                                febrero=row.get('Febrero'),
-                                marzo=row.get('Marzo'),
-                                abril=row.get('Abril'),
-                                mayo=row.get('Mayo'),
-                                junio=row.get('Junio'),
-                                julio=row.get('Julio'),
-                                agosto=row.get('Agosto'),
-                                septiembre=row.get('Septiembre'),
-                                octubre=row.get('Octubre'),
-                                noviembre=row.get('Noviembre'),
-                                diciembre=row.get('Diciembre')
-                            )
-                    
-                    # Procesar datos de UEBs (hoja Mensuales)
-                    df_uebs = pd.read_excel(xls, sheet_name='Mensuales', header=2)  # Saltar 2 filas de encabezado
-                    df_uebs = df_uebs[df_uebs['OBET o UEB'].notna()]  # Filtrar filas vacías
-                    
-                    for _, row in df_uebs.iterrows():
-                        if row['OBET o UEB'] != 'Provincia' and pd.notna(row['OBET o UEB']):
-                            DatosUEB.objects.create(
-                                plan=plan,
-                                nombre=row['OBET o UEB'],
-                                enero=row.get('Enero'),
-                                febrero=row.get('Febrero'),
-                                marzo=row.get('Marzo'),
-                                abril=row.get('Abril'),
-                                mayo=row.get('Mayo'),
-                                junio=row.get('Junio'),
-                                julio=row.get('Julio'),
-                                agosto=row.get('Agosto'),
-                                septiembre=row.get('Septiembre'),
-                                octubre=row.get('Octubre'),
-                                noviembre=row.get('Noviembre'),
-                                diciembre=row.get('Diciembre')
-                            )
-                    
-                    messages.success(request, f"Plan '{periodo}' cargado exitosamente con {len(df_municipios)} municipios y {len(df_uebs)} UEBs")
-                    return redirect('planes:listar')
-            
-            except Exception as e:
-                messages.error(request, f"Error al procesar el archivo: {str(e)}")
+                    logger.debug(f"Hojas encontradas en el Excel: {xls.sheet_names}")
+                except Exception as e:
+                    logger.error(f"Error al leer archivo Excel: {str(e)}", exc_info=True)
+                    raise ValueError("El archivo no es un Excel válido")
+                
+                # Validar hojas requeridas
+                if not all(sheet in xls.sheet_names for sheet in ['Acumulados', 'Mensuales']):
+                    logger.error(f"Hojas faltantes. Esperadas: ['Acumulados', 'Mensuales'], Encontradas: {xls.sheet_names}")
+                    raise ValueError("El archivo debe contener hojas 'Acumulados' y 'Mensuales'")
+                
+                # Crear plan
+                plan = Plan.objects.create(
+                    periodo=periodo,
+                    archivo=archivo,
+                    fecha_carga=timezone.now()
+                )
+                logger.debug(f"Plan creado: ID {plan.id}")
+                
+                # Procesar hojas
+                logger.debug("Procesando hoja Acumulados")
+                self.procesar_hoja(xls, 'Acumulados', plan, es_mensual=False)
+                
+                logger.debug("Procesando hoja Mensuales")
+                self.procesar_hoja(xls, 'Mensuales', plan, es_mensual=True)
+                
+                logger.info(f"Plan '{periodo}' cargado exitosamente con ID {plan.id}")
+                messages.success(request, f"Plan '{periodo}' cargado exitosamente!")
                 return redirect('planes:listar')
-        
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-        
+                
+        except Exception as e:
+            logger.error(f"Error en POST: {str(e)}", exc_info=True)
+            messages.error(request, f"Error al procesar: {str(e)}")
+            return redirect('planes:listar')
+    
+    def procesar_hoja(self, xls, nombre_hoja, plan, es_mensual=False):
+        try:
+            df = pd.read_excel(xls, sheet_name=nombre_hoja, header=1)
+            
+            if len(df) < 24:
+                raise ValueError(f"La hoja {nombre_hoja} no tiene el formato esperado (faltan filas)")
+
+            # Procesar municipios
+            municipios_data = []
+            for i in range(0, 15):
+                if i >= len(df):
+                    break
+                    
+                row = df.iloc[i]
+                municipio = str(row.iloc[0]).strip()
+                if municipio and municipio.lower() != 'provincia' and municipio != 'nan':
+                    municipios_data.append(DatosMunicipio(
+                        plan=plan,
+                        nombre=municipio,
+                        obet=MUNICIPIO_TO_OBET.get(municipio, ''),
+                        enero=self.validar_porcentaje(row.iloc[1]),
+                        febrero=self.validar_porcentaje(row.iloc[2]),
+                        marzo=self.validar_porcentaje(row.iloc[3]),
+                        abril=self.validar_porcentaje(row.iloc[4]),
+                        mayo=self.validar_porcentaje(row.iloc[5]),
+                        junio=self.validar_porcentaje(row.iloc[6]),
+                        julio=self.validar_porcentaje(row.iloc[7]),
+                        agosto=self.validar_porcentaje(row.iloc[8]),
+                        septiembre=self.validar_porcentaje(row.iloc[9]),
+                        octubre=self.validar_porcentaje(row.iloc[10]),
+                        noviembre=self.validar_porcentaje(row.iloc[11]),
+                        diciembre=self.validar_porcentaje(row.iloc[12]),
+                        es_mensual=es_mensual
+                    ))
+
+            # Procesar OBETs/UEBs
+            uebs_data = []
+            start_uebs = 17  # Fila 17 en Excel (OBET o UEB)
+            
+            for i in range(start_uebs, len(df)):
+                row = df.iloc[i]
+                obet = str(row.iloc[0]).strip()
+                if obet and obet != 'nan':
+                    if obet == 'Provincia':
+                        obet = 'PROVINCIA'
+                    
+                    uebs_data.append(DatosUEB(
+                        plan=plan,
+                        nombre=obet,
+                        enero=self.validar_porcentaje(row.iloc[1]),
+                        febrero=self.validar_porcentaje(row.iloc[2]),
+                        marzo=self.validar_porcentaje(row.iloc[3]),
+                        abril=self.validar_porcentaje(row.iloc[4]),
+                        mayo=self.validar_porcentaje(row.iloc[5]),
+                        junio=self.validar_porcentaje(row.iloc[6]),
+                        julio=self.validar_porcentaje(row.iloc[7]),
+                        agosto=self.validar_porcentaje(row.iloc[8]),
+                        septiembre=self.validar_porcentaje(row.iloc[9]),
+                        octubre=self.validar_porcentaje(row.iloc[10]),
+                        noviembre=self.validar_porcentaje(row.iloc[11]),
+                        diciembre=self.validar_porcentaje(row.iloc[12]),
+                        es_mensual=es_mensual
+                    ))
+
+            # Bulk create
+            if municipios_data:
+                DatosMunicipio.objects.bulk_create(municipios_data)
+            if uebs_data:
+                DatosUEB.objects.bulk_create(uebs_data)
+                
+        except Exception as e:
+            raise
+    
+    def validar_porcentaje(self, valor):
+        """Valida que el valor sea un porcentaje válido o lo convierte a None"""
+        try:
+            if pd.isna(valor):
+                return None
+            valor_float = float(valor)
+            return valor_float if 0 <= valor_float <= 100 else None
+        except (ValueError, TypeError):
+            return None   
+
+@login_required
+def eliminar_plan(request, pk):
+    plan = get_object_or_404(Plan, pk=pk)
+    if request.method == 'POST':
+        plan.delete()
+        messages.success(request, 'Plan eliminado correctamente.')
         return redirect('planes:listar')
-    
-    
-    
-    
-       
+    # Opcional: puedes renderizar un template de confirmación para GET
+    return render(request, 'planes/confirmar_eliminar.html', {'plan': plan})
