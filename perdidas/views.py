@@ -8,6 +8,8 @@ from .forms import CargaConsumoForm, EditarConsumoForm
 from .models import ConsumoEnergia
 from datetime import date
 
+
+
 def _agrupar_por_obet(datos):
     """Función auxiliar para agrupar datos por OBET"""
     agrupados = {}
@@ -45,6 +47,7 @@ def guardar_consumo(request):
     
     return redirect('perdidas:calculo')
 
+@login_required 
 class EditarConsumoView(UpdateView):
     model = ConsumoEnergia
     form_class = EditarConsumoForm

@@ -11,6 +11,8 @@ from .forms import PlanForm
 import logging
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ MUNICIPIO_TO_OBET = {
     'Varadero': 'OBET Varadero',
     'Provincia': ''
 }
-
+@method_decorator(login_required, name='dispatch')
 class PlanesView(View):
     template_name = 'planes/listar.html'
     

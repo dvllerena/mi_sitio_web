@@ -5,6 +5,7 @@ from .models import FacturacionMunicipio
 import pandas as pd
 from django.contrib.auth.decorators import login_required
 
+
 MAPA_MUNICIPIOS = {
     'Matanzas': 'MAT',
     'Varadero': 'VAR',

@@ -1,6 +1,6 @@
 {% extends 'usuarios/base.html' %}
 {% load static %}
-
+{% load math_operations %} 
 {% block title %}Panel de Control - UNE Matanzas{% endblock %}
 
 {% block content %}
@@ -77,14 +77,15 @@
             
             <!-- Widgets de Resumen Mejorados -->
             <div class="row mb-4">
-                <div class="col-md-6 mb-3">
+                <!-- Energía Total Acumulada -->
+                <div class="col-md-3 mb-3">
                     <div class="card h-100 border-start border-une-primary border-4">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <h6 class="text-uppercase text-muted small fw-bold">Pérdidas este mes</h6>
-                                    <h2 class="text-une-orange mb-0">15.8%</h2>
-                                    <span class="text-danger small"><i class="fas fa-arrow-up"></i> 2.1% vs mes anterior</span>
+                                    <h6 class="text-uppercase text-muted small fw-bold">Energía en Barra</h6>
+                                    <h2 class="text-une-blue mb-0">{{ energia_total|floatformat:1 }} MWh</h2>
+                                    <span class="text-muted small">Acumulado {{ año_actual }}</span>
                                 </div>
                                 <div class="bg-une-light p-3 rounded">
                                     <i class="fas fa-bolt text-une-primary fa-2x"></i>
@@ -97,14 +98,15 @@
                     </div>
                 </div>
                 
-                <div class="col-md-6 mb-3">
+                <!-- Facturación Total -->
+                <div class="col-md-3 mb-3">
                     <div class="card h-100 border-start border-une-primary border-4">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <h6 class="text-uppercase text-muted small fw-bold">Facturación total</h6>
-                                    <h2 class="text-une-blue mb-0">$2,450,000</h2>
-                                    <span class="text-success small"><i class="fas fa-arrow-up"></i> 5.3% vs mes anterior</span>
+                                    <h6 class="text-uppercase text-muted small fw-bold">Facturación Total</h6>
+                                    <h2 class="text-une-green mb-0">${{ facturacion_total|floatformat:0 }}</h2>
+                                    <span class="text-muted small">Acumulado {{ año_actual }}</span>
                                 </div>
                                 <div class="bg-une-light p-3 rounded">
                                     <i class="fas fa-dollar-sign text-une-primary fa-2x"></i>
@@ -116,26 +118,63 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Gráfico de Pérdidas (Placeholder) -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-une-secondary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Evolución de Pérdidas</h5>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-une-outline dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            Últimos 6 meses
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Últimos 3 meses</a></li>
-                            <li><a class="dropdown-item" href="#">Últimos 6 meses</a></li>
-                            <li><a class="dropdown-item" href="#">Este año</a></li>
-                        </ul>
+                
+                <!-- Plan de Pérdidas -->
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 border-start border-une-primary border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-uppercase text-muted small fw-bold">Plan de Pérdidas</h6>
+                                    <h2 class="text-une-orange mb-0">{{ plan_promedio|floatformat:1 }}%</h2>
+                                    <span class="text-muted small">Promedio anual</span>
+                                </div>
+                                <div class="bg-une-light p-3 rounded">
+                                    <i class="fas fa-bullseye text-une-primary fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{% url 'planes:listar' %}" class="small">Ver detalles <i class="fas fa-arrow-right"></i></a>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Pérdidas Reales -->
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 border-start border-une-primary border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-uppercase text-muted small fw-bold">Pérdidas Reales</h6>
+                                    <h2 class="text-une-red mb-0">{{ perdidas_promedio|floatformat:1 }}%</h2>
+                                    <span class="text-{% if perdidas_promedio > plan_promedio %}danger{% else %}success{% endif %} small">
+                                        {% if plan_promedio %}
+                                            {{ perdidas_promedio|subtract:plan_promedio|absolute|floatformat:1 }}% 
+                                            {% if perdidas_promedio > plan_promedio %}sobre{% else %}bajo{% endif %} plan
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="bg-une-light p-3 rounded">
+                                    <i class="fas fa-chart-line text-une-primary fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{% url 'infoperdidas:informe' %}" class="small">Ver detalles <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Pérdidas vs Plan -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-une-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Pérdidas vs Plan - Año {{ año_actual }}</h5>
+                </div>
                 <div class="card-body">
-                    <div class="chart-placeholder" style="height: 300px;">
-                        <img src="{% static 'img/chart-placeholder.png' %}" alt="Gráfico de pérdidas" class="img-fluid">
+                    <div style="height: 300px;">
+                        <canvas id="perdidasChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -153,28 +192,22 @@
                                     <th>Fecha</th>
                                     <th>Módulo</th>
                                     <th>Acción</th>
-                                    <th>Usuario</th>
+                                    <th>Hace</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                {% for plan in ultimos_planes %}
                                 <tr>
-                                    <td>15/07/2025 14:30</td>
-                                    <td>Cálculo</td>
-                                    <td>Nuevo cálculo realizado</td>
-                                    <td>Admin</td>
+                                    <td>{{ plan.fecha_carga|date:"d/m/Y H:i" }}</td>
+                                    <td>Planes</td>
+                                    <td>Cargado plan {{ plan.periodo }}</td>
+                                    <td>{{ plan.fecha_carga|timesince }}</td>
                                 </tr>
+                                {% empty %}
                                 <tr>
-                                    <td>14/07/2025 10:15</td>
-                                    <td>FacMayor</td>
-                                    <td>Actualización de tarifas</td>
-                                    <td>Técnico1</td>
+                                    <td colspan="4" class="text-center">No hay actividad reciente</td>
                                 </tr>
-                                <tr>
-                                    <td>12/07/2025 16:45</td>
-                                    <td>InfPérdidas</td>
-                                    <td>Generación de reporte</td>
-                                    <td>Admin</td>
-                                </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -187,50 +220,87 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Scripts para gráficos (ejemplo con Chart.js) -->
+<!-- Scripts para gráficos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Ejemplo de gráfico - implementar con datos reales
-const ctx = document.createElement('canvas');
-document.querySelector('.chart-placeholder').replaceWith(ctx);
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-        datasets: [{
-            label: '% Pérdidas',
-            data: [18.2, 17.5, 16.8, 16.3, 15.9, 15.8],
-            borderColor: '#F37021',
-            backgroundColor: 'rgba(243, 112, 33, 0.1)',
-            tension: 0.3,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return context.parsed.y + '%';
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('perdidasChart');
+    
+    // Formatear los datos con 2 decimales
+    const perdidasRealesFormateadas = {{ perdidas_reales|safe }}.map(val => parseFloat(val).toFixed(2));
+    const planPerdidasFormateadas = {{ plan_perdidas|safe }}.map(val => parseFloat(val).toFixed(2));
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ meses_grafico|safe }},
+            datasets: [
+                {
+                    label: 'Pérdidas Reales',
+                    data: perdidasRealesFormateadas,
+                    borderColor: '#F37021',
+                    backgroundColor: 'rgba(243, 112, 33, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: false,
+                    pointBackgroundColor: '#F37021',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Plan de Pérdidas',
+                    data: planPerdidasFormateadas,
+                    borderColor: '#2E86AB',
+                    backgroundColor: 'rgba(46, 134, 171, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0,
+                    fill: false,
+                    pointBackgroundColor: '#2E86AB',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            // Mostrar con 2 decimales en el tooltip
+                            return context.dataset.label + ': ' + parseFloat(context.parsed.y).toFixed(2) + '%';
+                        }
                     }
                 }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: false,
-                ticks: {
-                    callback: function(value) {
-                        return value + '%';
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Porcentaje de Pérdidas (%)'
+                    },
+                    // Mostrar valores con 2 decimales en el eje Y
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(2) + '%';
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Mes/Año'
                     }
                 }
             }
         }
-    }
+    });
 });
 </script>
 {% endblock %}

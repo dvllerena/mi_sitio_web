@@ -4,18 +4,61 @@ from django.db.models import Sum
 from django.core.exceptions import ObjectDoesNotExist
 from calendar import month_name
 from .models import ResultadoPerdidas
-from facturacion.models import FacturacionMunicipio # Importación necesaria
+from facturacion.models import FacturacionMunicipio
 from perdidas.models import ConsumoEnergia
-from .services import CalculadorPerdidas
+from .services import CalculadorPerdidas  # Importación correcta al inicio
 from datetime import datetime
 from django.urls import reverse
 import calendar
+from planes.models import Plan, DatosMunicipio, DatosUEB
+
+# Mapeo de códigos de facturación a nombres completos en planes
+MUNICIPIOS_MAP = {
+    'MAT': 'Matanzas',
+    'UNI': 'Unión de Reyes', 
+    'LIM': 'Limonar',
+    'COL': 'Colón',
+    'CAL': 'Calimete',
+    'ARA': 'Los Arabos',
+    'MAR': 'Martí',
+    'CAR': 'Cárdenas',
+    'VAR': 'Varadero', 
+    'JOV': 'Jovellanos',
+    'PER': 'Perico',
+    'JG': 'Jagüey Grande',
+    'CIE': 'Ciénaga de Zapata',
+    'BET': 'Pedro Betancourt',
+    'PROVINCIA': 'PROVINCIA'
+}
+
+# Mapeo de meses en español
+MESES_ESPANOL = {
+    1: 'enero',
+    2: 'febrero', 
+    3: 'marzo',
+    4: 'abril',
+    5: 'mayo',
+    6: 'junio',
+    7: 'julio',
+    8: 'agosto',
+    9: 'septiembre',
+    10: 'octubre',
+    11: 'noviembre',
+    12: 'diciembre'
+}
+
+def _get_nombre_plan(codigo_municipio):
+    """Convierte el código de facturación al nombre completo usado en los planes"""
+    return MUNICIPIOS_MAP.get(codigo_municipio.upper(), codigo_municipio)
+
+def _obtener_valor_mes(datos_obj, mes):
+    """Obtiene el valor del mes usando nombres de campos en español"""
+    mes_espanol = MESES_ESPANOL[mes]
+    return getattr(datos_obj, mes_espanol, 0)
 
 def _calcular_datos_provincia(municipios_data, año, mes, request):
     """
-    Calcula los datos consolidados de la provincia:
-    1. Suma de todos los municipios para el mes actual
-    2. Acumulado hasta el mes actual, incluyendo estación cabecera
+    Calcula los datos consolidados de la provincia
     """
     try:
         estacion_cabecera = FacturacionMunicipio.objects.get(
@@ -27,15 +70,49 @@ def _calcular_datos_provincia(municipios_data, año, mes, request):
         estacion_cabecera = 0
         messages.warning(request, "No se encontraron datos de Estación Cabecera para Cárdenas")
 
+    try:
+        # Obtener plan del año
+        plan_anual = Plan.objects.filter(periodo__contains=str(año)).first()
+        
+        if plan_anual:
+            # Buscar datos provinciales MENSUALES (es_mensual=True)
+            datos_provincia_mensual = DatosUEB.objects.filter(
+                plan=plan_anual,
+                nombre__icontains='PROVINCIA',
+                es_mensual=True
+            ).first()
+            
+            # Buscar datos provinciales ACUMULADOS (es_mensual=False)
+            datos_provincia_acumulado = DatosUEB.objects.filter(
+                plan=plan_anual,
+                nombre__icontains='PROVINCIA',
+                es_mensual=False
+            ).first()
+            
+            # Obtener valor del mes actual para plan_pct (mensual) - CORREGIDO
+            plan_pct = _obtener_valor_mes(datos_provincia_mensual, mes) if datos_provincia_mensual else 0
+            
+            # Obtener valor acumulado hasta el mes actual - CORREGIDO
+            plan_acum_pct = _obtener_valor_mes(datos_provincia_acumulado, mes) if datos_provincia_acumulado else 0
+        else:
+            plan_pct = 0
+            plan_acum_pct = 0
+            messages.warning(request, "No se encontró plan provincial para el año seleccionado")
+            
+    except Exception as e:
+        plan_pct = 0
+        plan_acum_pct = 0
+        messages.warning(request, f"Error al obtener plan provincial: {str(e)}")
+
     total_provincial = {
         'energia_barra': sum(m['energia_barra'] for m in municipios_data),
         'fact_mayor': sum(m['fact_mayor'] for m in municipios_data),
         'fact_menor': sum(m['fact_menor'] for m in municipios_data),
         'estacion_cabecera': estacion_cabecera,
         'nombre': 'PROVINCIA',
-        'codigo': 'provincia',
-        'plan_pct': 10.0,
-        'plan_acum_pct': 10.0
+        'codigo': 'PROVINCIA',  # Cambiado de 'provincia' a 'PROVINCIA' para consistencia
+        'plan_pct': plan_pct,
+        'plan_acum_pct': plan_acum_pct
     }
 
     total_provincial['total_ventas'] = (
@@ -52,6 +129,7 @@ def _calcular_datos_provincia(municipios_data, año, mes, request):
         if total_provincial['energia_barra'] > 0 else 0
     )
 
+    # Usar el servicio importado correctamente
     acumulado = CalculadorPerdidas.calcular_acumulado_provincial(año, mes)
 
     total_provincial['acumulado_energia'] = acumulado['acumulado_energia']
@@ -61,8 +139,15 @@ def _calcular_datos_provincia(municipios_data, año, mes, request):
 
     return total_provincial
 
+
 def informe_perdidas(request):
-    meses = [(i, calendar.month_name[i].capitalize()) for i in range(1, 13)]
+    # Cambiar meses a español para el template
+    meses_espanol = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+    
     años = range(datetime.now().year, 2019, -1)
     
     try:
@@ -94,12 +179,53 @@ def informe_perdidas(request):
             
         datos_municipios = []
         
-        # 💡 Lógica corregida para obtener los municipios únicos del modelo FacturacionMunicipio
+        # Obtener municipios únicos
         municipios_unicos_data = FacturacionMunicipio.objects.values('municipio').distinct().order_by('municipio')
-        municipios = [{'nombre': m['municipio'], 'codigo': m['municipio']} for m in municipios_unicos_data]
+        municipios = [{'nombre': dict(FacturacionMunicipio.MUNICIPIOS).get(m['municipio'], m['municipio']), 
+                      'codigo': m['municipio']} for m in municipios_unicos_data]
+        
+        # Obtener plan del año una sola vez
+        plan_anual = Plan.objects.filter(periodo__contains=str(año)).first()
         
         for mun in municipios:
             try:
+                # Obtener datos del plan para el municipio
+                plan_pct = 0
+                plan_acum_pct = 0
+                
+                if plan_anual:
+                    try:
+                        # Convertir nombre al formato de planes
+                        nombre_plan = _get_nombre_plan(mun['codigo'])
+                        
+                        # Buscar datos MENSUALES del municipio
+                        datos_mensuales = DatosMunicipio.objects.get(
+                            nombre=nombre_plan,
+                            plan=plan_anual,
+                            es_mensual=True
+                        )
+                        
+                        # Buscar datos ACUMULADOS del municipio
+                        datos_acumulados = DatosMunicipio.objects.get(
+                            nombre=nombre_plan,
+                            plan=plan_anual,
+                            es_mensual=False
+                        )
+                        
+                        # Obtener valor del mes actual para plan_pct (mensual) - CORREGIDO
+                        plan_pct = _obtener_valor_mes(datos_mensuales, mes)
+                        
+                        # Obtener valor acumulado hasta el mes actual - CORREGIDO
+                        plan_acum_pct = _obtener_valor_mes(datos_acumulados, mes)
+                        
+                        # DIAGNÓSTICO: Verificar valores
+                        print(f"{nombre_plan}: Mes {MESES_ESPANOL[mes]} = {plan_pct} (mensual), {plan_acum_pct} (acumulado)")
+                        
+                    except DatosMunicipio.DoesNotExist:
+                        messages.warning(request, f"No se encontró plan para {mun['nombre']} (código: {mun['codigo']}, buscado como: {nombre_plan}) en {año}")
+                    except Exception as e:
+                        messages.warning(request, f"Error al obtener plan para {mun['nombre']}: {str(e)}")
+
                 resultado_mun = ResultadoPerdidas.objects.get(
                     municipio=mun['codigo'], mes=mes, año=año
                 )
@@ -112,11 +238,11 @@ def informe_perdidas(request):
                     'perdidas_pct': resultado_mun.perdidas_pct,
                     'fact_mayor': resultado_mun.facturacion_mayor,
                     'fact_menor': resultado_mun.facturacion_menor,
-                    'plan_pct': resultado_mun.plan_pct,
+                    'plan_pct': plan_pct,
                     'acumulado_energia': resultado_mun.acumulado_energia,
                     'acumulado_perdidas': resultado_mun.acumulado_perdidas,
                     'acumulado_pct': resultado_mun.acumulado_pct,
-                    'plan_acum_pct': resultado_mun.plan_acum_pct,
+                    'plan_acum_pct': plan_acum_pct,
                 })
             except ResultadoPerdidas.DoesNotExist:
                 datos_municipios.append({
@@ -130,6 +256,13 @@ def informe_perdidas(request):
         
         # Añade los datos consolidados de la provincia
         datos_provincia = _calcular_datos_provincia(datos_municipios, año, mes, request)
+        
+        # GUARDAR DATOS PROVINCIALES EN LA BASE DE DATOS
+        try:
+            CalculadorPerdidas.guardar_datos_provincia(datos_provincia, mes, año)
+        except Exception as e:
+            messages.warning(request, f"Error guardando datos provinciales: {str(e)}")
+        
         datos_municipios.append(datos_provincia)
 
     except Exception as e:
@@ -140,12 +273,13 @@ def informe_perdidas(request):
 
     contexto = {
         'municipios': datos_municipios,
-        'meses': meses,
+        'meses': meses_espanol,  # Usar meses en español
         'mes_actual': mes,
         'años': años,
         'año_actual': año,
     }
     return render(request, 'infoperdidas/informe.html', contexto)
+
 
 def calcular_acumulados(request, año):
     try:
@@ -156,6 +290,7 @@ def calcular_acumulados(request, año):
     except Exception as e:
         messages.error(request, f"Error calculando acumulados: {str(e)}")
         return redirect('infoperdidas:informe')
+
 
 def calcular_perdidas(request):
     if request.method == 'POST':
@@ -170,14 +305,10 @@ def calcular_perdidas(request):
             if resultados:
                 messages.success(request, f"Cálculos completados para {len(resultados)} municipios")
             
-            # 💡 Corrección aquí: Usamos 'redirect' con los parámetros de la URL
             return redirect(f'infoperdidas:informe?mes={mes}&año={año}')
             
         except ValueError as e:
             messages.error(request, f"Error: {str(e)}")
             return redirect('infoperdidas:calcular')
     
-    # El código aquí abajo también tenía un error similar y una lógica extraña.
-    # Te sugiero una estructura más simple si el método no es POST.
-    # Si la vista solo debe manejar POST, puedes eliminar estas líneas.
     return redirect('infoperdidas:informe')

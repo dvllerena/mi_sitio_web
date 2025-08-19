@@ -3,10 +3,10 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from facturacion.models import FacturacionMunicipio
 
 class ResultadoPerdidas(models.Model):
-    MUNICIPIOS = FacturacionMunicipio.MUNICIPIOS
+    MUNICIPIOS = FacturacionMunicipio.MUNICIPIOS + [('PROVINCIA', 'PROVINCIA')]
     
     municipio = models.CharField(
-        max_length=3,
+        max_length=10,
         choices=MUNICIPIOS,
         verbose_name="Municipio"
     )

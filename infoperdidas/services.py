@@ -126,7 +126,7 @@ class CalculadorPerdidas:
             except Exception as e:
                 print(f"Error calculando acumulados para {nombre} ({codigo}): {str(e)}")
                 continue
-
+            
     @staticmethod
     def calcular_acumulado_provincial(año, mes):
         """Calcula el acumulado provincial incluyendo la estación cabecera"""
@@ -156,3 +156,32 @@ class CalculadorPerdidas:
             'acumulado_perdidas': round(perdidas_total, 2),
             'acumulado_pct': round(perdidas_pct, 2)
         }
+    
+    
+    @classmethod
+    @transaction.atomic
+    def guardar_datos_provincia(cls, datos_provincia, mes, año):
+        """Guarda los datos calculados de la provincia en la base de datos"""
+        try:
+            resultado, created = ResultadoPerdidas.objects.update_or_create(
+                municipio='PROVINCIA',
+                mes=mes,
+                año=año,
+                defaults={
+                    'energia_barra': round(float(datos_provincia['energia_barra']), 2),
+                    'total_ventas': round(float(datos_provincia['total_ventas']), 2),
+                    'perdidas_mwh': round(float(datos_provincia['perdidas_mwh']), 2),
+                    'perdidas_pct': round(float(datos_provincia['perdidas_pct']), 2),
+                    'facturacion_mayor': round(float(datos_provincia['fact_mayor']), 2),
+                    'facturacion_menor': round(float(datos_provincia['fact_menor']), 2),
+                    'acumulado_energia': round(float(datos_provincia['acumulado_energia']), 2),
+                    'acumulado_ventas': round(float(datos_provincia['acumulado_ventas']), 2),
+                    'acumulado_perdidas': round(float(datos_provincia['acumulado_perdidas']), 2),
+                    'acumulado_pct': round(float(datos_provincia['acumulado_pct']), 2),
+                    'plan_pct': round(float(datos_provincia.get('plan_pct', 0)), 2),
+                    'plan_acum_pct': round(float(datos_provincia.get('plan_acum_pct', 0)), 2),
+                }
+            )
+            return resultado
+        except Exception as e:
+            raise ValueError(f"Error guardando datos provinciales: {str(e)}")
